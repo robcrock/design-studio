@@ -24,4 +24,4 @@ For new directly authored artifacts, preview and apply [identity assignment](../
 
 ## Verify
 
-Inspect the rendered artifact, its links, and any embeds. Repair reported rendering errors and follow platform working context for required checks. Report the artifact link and unresolved content.
+Inspect the rendered artifact, its links, and any embeds. Open the diagram page for a large diagram: it starts fitted to the page, and zoom and pan read it without changing the source. Repair reported rendering errors and follow platform working context for required checks. Report the artifact link and unresolved content.

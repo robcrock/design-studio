@@ -1,0 +1,95 @@
+%% @studio-id tgznntn1f5ez2kqr
+flowchart LR
+  accTitle: Feedback operations
+  accDescr: A wide feedback operation from intake through triage, research, design, build, release, and follow-up. The page starts fitted, so zoom in to read one stage.
+
+  subgraph capture [Capture]
+    direction TB
+    portal[Product portal] --> form[Feedback form]
+    email[Support email] --> shared[Shared inbox]
+    interview[Research interview] --> notes[Session notes]
+    sales[Sales call] --> crm[CRM note]
+    form --> intake[Intake queue]
+    shared --> intake
+    notes --> intake
+    crm --> intake
+    intake --> spam{Spam or noise?}
+    spam -->|Drop| discarded[Discard]
+    spam -->|Keep| tagged[Tag product area]
+  end
+
+  tagged --> dedupe{Already tracked?}
+  dedupe -->|Yes| merge[Merge into the open item]
+  dedupe -->|No| kind{What kind of feedback?}
+
+  subgraph triage [Triage]
+    direction TB
+    kind -->|Bug| repro[Write reproduction steps]
+    kind -->|Usability| cluster[Cluster related reports]
+    kind -->|Request| demand[Score demand and segment]
+    kind -->|Praise| praise[Record the praise signal]
+    merge --> kind
+    repro --> blocking{Blocks a key task?}
+    blocking -->|Yes| incident[Open an incident]
+    blocking -->|No| bugs[Bug backlog]
+    incident --> hotfix{Needs a hotfix?}
+    hotfix -->|Yes| patch[Prepare a patch]
+    hotfix -->|No| bugs
+    cluster --> evidence{Enough evidence?}
+    evidence -->|No| followup[Schedule a follow-up]
+    followup --> interview
+    evidence -->|Yes| opportunity[Name the opportunity]
+    demand --> roadmap{Already on the roadmap?}
+    roadmap -->|No| parking[Parking lot]
+    roadmap -->|Yes| opportunity
+    parking --> quarterly[Quarterly review]
+    quarterly --> roadmap
+    praise --> signal[Add to the signal log]
+  end
+
+  subgraph shape [Shape the work]
+    direction TB
+    opportunity --> frame[Frame the problem]
+    frame --> constraints[List constraints]
+    constraints --> explore[Sketch approaches]
+    explore --> critique{Ready for critique?}
+    critique -->|Revise| explore
+    critique -->|Proceed| spec[Write the spec]
+    spec --> reviewSpec{Spec accepted?}
+    reviewSpec -->|Changes| spec
+    reviewSpec -->|Accepted| estimate[Estimate the work]
+    estimate --> capacity{Room this cycle?}
+    capacity -->|Later| scheduled[Schedule a later cycle]
+    scheduled --> capacity
+  end
+
+  subgraph build [Build and release]
+    direction TB
+    capacity -->|Now| implement[Implement]
+    implement --> designReview[Design review]
+    designReview --> changes{Needs changes?}
+    changes -->|Yes| implement
+    changes -->|No| qa[Check against the original report]
+    qa --> match{Matches the need?}
+    match -->|No| implement
+    match -->|Yes| ship[Ship]
+    patch --> ship
+    ship --> notes2[Write release notes]
+    notes2 --> notify[Notify the reporter]
+    notify --> support[Update support macros]
+  end
+
+  subgraph learn [Learn]
+    direction TB
+    support --> watch[Watch the metric]
+    watch --> window[Wait for the review window]
+    window --> outcome{Did it help?}
+    outcome -->|No| opportunity
+    outcome -->|Partial| refine[Open a refinement]
+    refine --> opportunity
+    outcome -->|Yes| resolved[Mark resolved]
+    signal --> resolved
+    resolved --> retro[Add to the retro]
+    retro --> library[Update the pattern library]
+    discarded --> retro
+  end

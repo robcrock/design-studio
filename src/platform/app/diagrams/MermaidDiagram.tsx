@@ -7,6 +7,7 @@ import {
   type Preparation,
 } from '@/platform/core/artifact-lifecycle/index';
 import { useEffect, useId, useRef, useState } from 'react';
+import { DiagramViewport } from './DiagramViewport';
 import { diagramTheme } from './diagramTheme';
 import { useDiagramEnvironment } from './useDiagramEnvironment';
 
@@ -131,14 +132,18 @@ export function MermaidDiagram({
         </figcaption>
       )}
       {result.svg ? (
-        <div
-          className={
-            fit || compact
-              ? 'relative min-h-0 min-w-0 flex-1 overflow-hidden [&_svg]:absolute [&_svg]:inset-0 [&_svg]:h-full! [&_svg]:w-full! [&_svg]:max-w-none!'
-              : 'overflow-x-auto [&_svg]:mx-auto [&_svg]:h-auto [&_svg]:max-w-full'
-          }
-          dangerouslySetInnerHTML={{ __html: result.svg }}
-        />
+        fit && !compact ? (
+          <DiagramViewport svg={result.svg} resetKey={source} />
+        ) : (
+          <div
+            className={
+              fit || compact
+                ? 'relative min-h-0 min-w-0 flex-1 overflow-hidden [&_svg]:absolute [&_svg]:inset-0 [&_svg]:h-full! [&_svg]:w-full! [&_svg]:max-w-none!'
+                : 'overflow-x-auto [&_svg]:mx-auto [&_svg]:h-auto [&_svg]:max-w-full'
+            }
+            dangerouslySetInnerHTML={{ __html: result.svg }}
+          />
+        )
       ) : result.error ? (
         <div role='alert' className='min-h-0 overflow-auto'>
           <p className='text-sm font-medium'>Unable to render Mermaid diagram.</p>
