@@ -28,46 +28,72 @@ function clampView(view: View, width: number, height: number): View {
   };
 }
 
+function zoomView(current: View, originX: number, originY: number, factor: number, width: number, height: number) {
+  const scale = clampScale(current.scale * factor);
+  if (scale === current.scale) return current;
+  const ratio = scale / current.scale;
+  return clampView(
+    {
+      scale,
+      x: originX - (originX - current.x) * ratio,
+      y: originY - (originY - current.y) * ratio,
+    },
+    width,
+    height,
+  );
+}
+
+function transformOf(view: View) {
+  return `translate(${view.x}px, ${view.y}px) scale(${view.scale})`;
+}
+
 export function DiagramViewport({ svg, resetKey }: { svg: string; resetKey: string }) {
   const viewport = useRef<HTMLDivElement>(null);
+  const stage = useRef<HTMLDivElement>(null);
+  const percentNode = useRef<HTMLSpanElement>(null);
+  const camera = useRef(fitted);
+  const drag = useRef<{ id: number; x: number; y: number } | null>(null);
   const [view, setView] = useState<View>(fitted);
   const [panning, setPanning] = useState(false);
-  const drag = useRef<{ id: number; x: number; y: number } | null>(null);
+
+  const paint = (next: View) => {
+    camera.current = next;
+    if (stage.current) stage.current.style.transform = transformOf(next);
+    if (percentNode.current) percentNode.current.textContent = `${Math.round(next.scale * 100)}%`;
+  };
 
   useEffect(() => {
+    paint(fitted);
     setView(fitted);
   }, [resetKey]);
 
   useEffect(() => {
     const element = viewport.current;
     if (!element) return;
+    let settle = 0;
     const reclamp = () => {
-      setView(current => clampView(current, element.clientWidth, element.clientHeight));
+      const next = clampView(camera.current, element.clientWidth, element.clientHeight);
+      paint(next);
+      setView(next);
     };
     const observer = new ResizeObserver(reclamp);
     observer.observe(element);
     const onWheel = (event: WheelEvent) => {
       event.preventDefault();
       const rect = element.getBoundingClientRect();
-      const px = event.clientX - rect.left;
-      const py = event.clientY - rect.top;
       const raw = Math.exp(-event.deltaY * (event.deltaMode === 1 ? 0.03 : 0.0015));
       const factor = Math.min(1.4, Math.max(1 / 1.4, raw));
-      setView(current => {
-        const scale = clampScale(current.scale * factor);
-        if (scale === current.scale) return current;
-        const ratio = scale / current.scale;
-        return clampView(
-          { scale, x: px - (px - current.x) * ratio, y: py - (py - current.y) * ratio },
-          rect.width,
-          rect.height,
-        );
-      });
+      paint(
+        zoomView(camera.current, event.clientX - rect.left, event.clientY - rect.top, factor, rect.width, rect.height),
+      );
+      window.clearTimeout(settle);
+      settle = window.setTimeout(() => setView(camera.current), 80);
     };
     element.addEventListener('wheel', onWheel, { passive: false });
     return () => {
       observer.disconnect();
       element.removeEventListener('wheel', onWheel);
+      window.clearTimeout(settle);
     };
   }, []);
 
@@ -75,30 +101,30 @@ export function DiagramViewport({ svg, resetKey }: { svg: string; resetKey: stri
     const element = viewport.current;
     if (!element) return;
     const rect = element.getBoundingClientRect();
-    const px = clientX === undefined ? rect.width / 2 : clientX - rect.left;
-    const py = clientY === undefined ? rect.height / 2 : clientY - rect.top;
-    setView(current => {
-      const scale = clampScale(current.scale * factor);
-      if (scale === current.scale) return current;
-      const ratio = scale / current.scale;
-      return clampView(
-        { scale, x: px - (px - current.x) * ratio, y: py - (py - current.y) * ratio },
-        rect.width,
-        rect.height,
-      );
-    });
+    const next = zoomView(
+      camera.current,
+      clientX === undefined ? rect.width / 2 : clientX - rect.left,
+      clientY === undefined ? rect.height / 2 : clientY - rect.top,
+      factor,
+      rect.width,
+      rect.height,
+    );
+    paint(next);
+    setView(next);
   };
 
   const panBy = (dx: number, dy: number) => {
     const element = viewport.current;
     if (!element) return;
-    setView(current =>
-      clampView({ ...current, x: current.x + dx, y: current.y + dy }, element.clientWidth, element.clientHeight),
+    const next = clampView(
+      { ...camera.current, x: camera.current.x + dx, y: camera.current.y + dy },
+      element.clientWidth,
+      element.clientHeight,
     );
+    paint(next);
   };
 
   const percent = Math.round(view.scale * 100);
-  const fittedNow = view.scale === MIN_SCALE && view.x === 0 && view.y === 0;
 
   return (
     <div className='relative min-h-0 min-w-0 flex-1'>
@@ -107,7 +133,7 @@ export function DiagramViewport({ svg, resetKey }: { svg: string; resetKey: stri
         tabIndex={0}
         role='group'
         aria-label={`Diagram, ${percent} percent. Scroll to zoom, drag to pan, or use the arrow keys.`}
-        className={`absolute inset-0 overflow-hidden touch-none select-none outline-none focus-visible:ring-3 focus-visible:ring-ring/50 ${panning ? 'cursor-grabbing' : 'cursor-grab'}`}
+        className={`absolute inset-0 touch-none outline-none focus-visible:[&_.diagram-focus]:ring-ring/50 ${panning ? 'cursor-grabbing' : 'cursor-grab'}`}
         onPointerDown={event => {
           if (event.button !== 0) return;
           event.currentTarget.setPointerCapture(event.pointerId);
@@ -127,18 +153,22 @@ export function DiagramViewport({ svg, resetKey }: { svg: string; resetKey: stri
           if (drag.current?.id !== event.pointerId) return;
           drag.current = null;
           setPanning(false);
+          setView(camera.current);
         }}
         onPointerCancel={() => {
           drag.current = null;
           setPanning(false);
+          setView(camera.current);
         }}
         onDoubleClick={event => zoomToward(BUTTON_STEP, event.clientX, event.clientY)}
         onKeyDown={event => {
           if (event.metaKey || event.ctrlKey || event.altKey) return;
           if (event.key === '+' || event.key === '=') zoomToward(BUTTON_STEP);
           else if (event.key === '-' || event.key === '_') zoomToward(1 / BUTTON_STEP);
-          else if (event.key === '0') setView(fitted);
-          else if (event.key === 'ArrowLeft') panBy(PAN_STEP, 0);
+          else if (event.key === '0') {
+            paint(fitted);
+            setView(fitted);
+          } else if (event.key === 'ArrowLeft') panBy(PAN_STEP, 0);
           else if (event.key === 'ArrowRight') panBy(-PAN_STEP, 0);
           else if (event.key === 'ArrowUp') panBy(0, PAN_STEP);
           else if (event.key === 'ArrowDown') panBy(0, -PAN_STEP);
@@ -146,11 +176,18 @@ export function DiagramViewport({ svg, resetKey }: { svg: string; resetKey: stri
           event.preventDefault();
         }}
       >
-        <div
-          className='h-full w-full [&_svg]:absolute [&_svg]:inset-0 [&_svg]:h-full! [&_svg]:w-full! [&_svg]:max-w-none!'
-          style={{ transform: `translate(${view.x}px, ${view.y}px) scale(${view.scale})`, transformOrigin: '0 0' }}
-          dangerouslySetInnerHTML={{ __html: svg }}
-        />
+        <div className='absolute inset-0 overflow-hidden'>
+          <div
+            ref={stage}
+            className='h-full w-full [&_svg]:absolute [&_svg]:inset-0 [&_svg]:h-full! [&_svg]:w-full! [&_svg]:max-w-none!'
+            style={{ transformOrigin: '0 0' }}
+            dangerouslySetInnerHTML={{ __html: svg }}
+          />
+          <div
+            aria-hidden
+            className='diagram-focus pointer-events-none absolute inset-0 ring-3 ring-transparent ring-inset'
+          />
+        </div>
       </div>
       <div
         role='group'
@@ -166,7 +203,9 @@ export function DiagramViewport({ svg, resetKey }: { svg: string; resetKey: stri
         >
           <HugeiconsIcon icon={ZoomOutIcon} />
         </Button>
-        <span className='min-w-12 text-center text-xs tabular-nums text-muted-foreground'>{percent}%</span>
+        <span ref={percentNode} className='min-w-12 text-center text-xs tabular-nums text-muted-foreground'>
+          {percent}%
+        </span>
         <Button
           variant='ghost'
           size='icon-sm'
@@ -180,8 +219,11 @@ export function DiagramViewport({ svg, resetKey }: { svg: string; resetKey: stri
           variant='ghost'
           size='icon-sm'
           aria-label='Fit diagram'
-          disabled={fittedNow}
-          onClick={() => setView(fitted)}
+          disabled={view.scale <= MIN_SCALE}
+          onClick={() => {
+            paint(fitted);
+            setView(fitted);
+          }}
         >
           <HugeiconsIcon icon={FitToScreenIcon} />
         </Button>
