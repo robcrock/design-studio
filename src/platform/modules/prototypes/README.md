@@ -105,6 +105,10 @@ These requirements apply to indirect and type-only dependencies. Dynamic imports
 
 Prototype styles use Tailwind classes or CSS Modules with local selectors. Plain CSS imports, `:global`, and CSS `@import` are not supported in prototype code. Assigned system tokens follow the [system styling contract](../systems/README.md#theme).
 
+## Download
+
+While Studio is running locally, **Download** in a prototype's menu builds that prototype into one HTML file. The file includes its views and design system, leaves out Studio and every other prototype, and opens in a browser. It is not the published site.
+
 ## Archiving and deployment
 
 Archiving applies to a whole prototype. `meta.json.status: "archived"` keeps it available locally and excludes it and its files from production discovery and bundling. Omission or `active` restores publication eligibility. Unknown values fail validation.

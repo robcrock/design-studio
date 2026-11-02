@@ -11,3 +11,5 @@ public/prototypes/artifacts/
 *.tsbuildinfo
 
 .studio-system-operation
+.download/
+src/studio-share/

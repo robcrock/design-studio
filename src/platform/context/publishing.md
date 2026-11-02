@@ -2,7 +2,7 @@
 title: "Publishing"
 ---
 
-Hosting is optional. You can create prototypes locally and collaborate through Git before publishing a site.
+Hosting is optional. You can create prototypes locally and collaborate through Git before publishing a site. **Download** in a prototype's menu builds that one prototype into an HTML file on your machine; it is not this published site.
 
 Publish when people need a shared viewing URL. The studio maintainer chooses the host, access requirements, and release process.
 

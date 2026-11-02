@@ -1,6 +1,6 @@
 // What you can do to a prototype or section item from a menu: the prototype's "…" menu in its navigation
 // (PrototypeHeader.tsx) and the "…" on its card (PrototypeCardMenu.tsx) share this, so they offer the same
-// things. Reaching it (copy its link; locally, open it in your editor) is open to everyone. Changing it
+// things. Reaching it (copy its link; locally, open it in your editor or download a copy) is open to everyone. Changing it
 // (rename, duplicate, archive, delete, and whatever a module adds, like publish) is only for its owner, or the maintainers
 // of an item in a module's section (ownsPrototype). That only decides what is shown: the dev server checks
 // ownership again on every change.
@@ -11,6 +11,7 @@ import {
   ArchiveRestoreIcon,
   Copy01Icon,
   Delete02Icon,
+  Download01Icon,
   FileEditIcon,
   Folder01Icon,
   Link01Icon,
@@ -27,6 +28,34 @@ import DeletePrototypeDialog from '@/platform/modules/prototypes/viewer/DeletePr
 type Icon = typeof Link01Icon;
 
 export type Action = { label: string; icon: Icon; onSelect: () => void; destructive?: boolean };
+
+// Asks the dev server to build this prototype into one HTML file and saves it.
+async function downloadShare(proto: PrototypeInfo) {
+  const pending = toast.add({ type: 'loading', title: 'Downloading', timeout: 120_000 });
+  try {
+    const res = await fetch('/__studio/download', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contributor: proto.contributorKey, prototype: proto.id }),
+    });
+    if (!res.ok) {
+      const body = (await res.json().catch(() => ({}))) as { error?: string };
+      throw new Error(body.error || "Couldn't download this prototype.");
+    }
+    const name = /filename="([^"]+)"/.exec(res.headers.get('Content-Disposition') ?? '')?.[1] ?? 'prototype.html';
+    const url = URL.createObjectURL(await res.blob());
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = name;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    toast.add({ title: 'Download ready' });
+  } catch (error) {
+    toast.add({ type: 'error', title: error instanceof Error ? error.message : "Couldn't download this prototype." });
+  } finally {
+    toast.close(pending);
+  }
+}
 
 export function usePrototypeActions(proto: PrototypeInfo) {
   const router = useRouter();
@@ -78,6 +107,13 @@ export function usePrototypeActions(proto: PrototypeInfo) {
               navigator.clipboard.writeText(repoPath(proto, ''));
               toast.add({ title: 'Path copied' });
             },
+          },
+          // A built copy the client can open without this studio running. Local, like Copy path:
+          // the build happens on this machine, before anything is hosted.
+          local && {
+            label: 'Download',
+            icon: Download01Icon,
+            onSelect: () => void downloadShare(proto),
           },
         ],
         [

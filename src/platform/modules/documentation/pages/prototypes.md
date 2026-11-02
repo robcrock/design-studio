@@ -109,6 +109,10 @@ Right-click a view and choose **Make lo-fi** for grayscale and handwritten type.
 
 To try another system, choose **Duplicate** and select the target system. This creates a rebuild copy and preserves the original. Use **Copy rebuild instructions** in the copy's sidebar and give them to your agent. The copy keeps its current system until the agent migrates and verifies it; duplication does not convert code automatically.
 
+## Can I hand someone one prototype?
+
+**Download**, in the prototype's **…** menu, builds that prototype into one HTML file. The person opens the file in a browser and clicks through its screens. The file includes that prototype and its design system, and leaves out Studio and every other prototype. It takes a moment, and it is available while Studio is running on your machine.
+
 ## What do archive and delete do?
 
 Use the prototype or system's **…** menu. Permissions determine available actions.

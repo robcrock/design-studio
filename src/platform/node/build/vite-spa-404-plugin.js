@@ -17,7 +17,7 @@ export default function spa404() {
       failed = Boolean(error);
     },
     closeBundle() {
-      if (failed) return;
+      if (failed || process.env.STUDIO_SHARE_HTML) return;
       fs.copyFileSync(path.join(outDir, 'index.html'), path.join(outDir, '404.html'));
     },
   };

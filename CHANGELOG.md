@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Download one prototype from its menu as a single HTML file someone can open in a browser, while Studio is running locally. The file includes that prototype and its design system, and leaves out Studio and every other prototype.
 - Describe how to propose an improvement and what happens next in `CONTRIBUTING.md`, with a feature proposal issue form. Maintainers follow a new [community contributions](src/platform/context/community-contributions.md) guide to assess, adapt, release, and credit outside work.
 
 ## 0.1.3 (2026-11-01)

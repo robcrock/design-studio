@@ -67,30 +67,60 @@ const moduleLibs = ENABLED_MODULES.filter((m: { lib?: boolean }) => m.lib).map((
   replacement: fileURLToPath(new URL(`./${MODULE_DIRS[m.id as string]}lib/index`, import.meta.url)),
 }));
 
+// A prototype download (src/platform/node/build/download-prototype.js) builds one screen into a
+// file, apart from the studio site. The dev server sets these; a normal build leaves them unset.
+const shareHtml = process.env.STUDIO_SHARE_HTML;
+const shareOut = process.env.STUDIO_SHARE_OUT;
+if (shareHtml && !shareOut) throw new Error('A prototype download needs STUDIO_SHARE_OUT.');
+
 export default defineConfig({
   root: 'src',
   // Pages supplies a path without a trailing slash; data URLs append relative paths.
-  base: `${(process.env.STUDIO_BASE_PATH || '/').replace(/\/+$/, '')}/`,
-  publicDir: '../public',
+  base: shareHtml ? './' : `${(process.env.STUDIO_BASE_PATH || '/').replace(/\/+$/, '')}/`,
+  publicDir: shareHtml ? false : '../public',
   css: { postcss: { plugins: [scopedUtilities()] } },
-  build: {
-    outDir: '../dist',
-    emptyOutDir: true,
-    manifest: true,
-    rolldownOptions: {
-      output: {
-        // Keep heavy feature libraries lazy while consolidating shared shell code.
-        codeSplitting: {
-          groups: [
-            {
-              name: 'studio-ui',
-              test: /[\\/]node_modules[\\/](?:@base-ui[\\/]react|@tanstack[\\/](?:react-router|router-core|history)|react(?:-dom)?|use-sync-external-store|scheduler|cmdk)[\\/]/,
+  server: {
+    // A download writes a temporary page under src/studio-share. Watching it reloads the app mid-download.
+    watch: { ignored: ['**/studio-share/**', '**/.download/**'] },
+  },
+  build: shareHtml
+    ? {
+        outDir: shareOut!,
+        emptyOutDir: true,
+        cssCodeSplit: false,
+        manifest: false,
+        modulePreload: false,
+        // Fonts and images belong in the one file the client opens.
+        assetsInlineLimit: 100_000_000,
+        rollupOptions: { input: shareHtml },
+        rolldownOptions: {
+          input: shareHtml,
+          output: {
+            codeSplitting: false,
+            // A classic script, so the file runs when someone double-clicks it. Module scripts do not.
+            format: 'iife',
+            inlineDynamicImports: true,
+          },
+        },
+      }
+    : {
+        outDir: '../dist',
+        emptyOutDir: true,
+        manifest: true,
+        rolldownOptions: {
+          output: {
+            // Keep heavy feature libraries lazy while consolidating shared shell code.
+            codeSplitting: {
+              groups: [
+                {
+                  name: 'studio-ui',
+                  test: /[\\/]node_modules[\\/](?:@base-ui[\\/]react|@tanstack[\\/](?:react-router|router-core|history)|react(?:-dom)?|use-sync-external-store|scheduler|cmdk)[\\/]/,
+                },
+              ],
             },
-          ],
+          },
         },
       },
-    },
-  },
   // The Source view's editor (SourcePane.tsx) loads its languages on demand, so Vite would find these packages
   // only when you first open it, re-bundle them, and end up with two copies of @codemirror/state: the editor
   // then fails with "Unrecognized extension value". Listing them bundles them together at start.

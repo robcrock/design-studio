@@ -5,6 +5,7 @@ import { moveUpdates } from './files/move-updates.js';
 import { canonicalDirectory } from '../lib/safe-paths.js';
 import { configurationRestartPending } from './vite-settings-plugin.js';
 import { documentationSources, sourceFile } from './files/source.js';
+import { downloadPrototype } from './download-prototype.js';
 // The file layer behind the prototype navigation's file tree, during `pnpm dev` only.
 // (The deployed site is static, so this doesn't exist there.)
 //
@@ -196,6 +197,21 @@ export default function filesPlugin() {
         try {
           if (!sameOrigin(req)) return send(res, 403, { error: 'Only the app can use this.' });
           const url = new URL(req.url ?? '/', 'http://localhost');
+          if (req.method === 'POST' && url.pathname === '/download') {
+            const body = await readJson(req);
+            const dir = prototypeDir(body.contributor, body.prototype);
+            if (!dir) return send(res, 404, { error: 'This prototype no longer exists.' });
+            try {
+              const file = await downloadPrototype(dir);
+              res.statusCode = 200;
+              res.setHeader('Content-Type', 'text/html; charset=utf-8');
+              res.setHeader('Content-Disposition', `attachment; filename="${file.name.replace(/"/g, '')}"`);
+              res.end(file.html);
+              return;
+            } catch (error) {
+              return send(res, 500, { error: error.message || "Couldn't download this prototype." });
+            }
+          }
           if (req.method === 'POST' && url.pathname === '/editor') {
             const file = editorFile(ROOT, (await readJson(req)).path);
             if (!file) return send(res, 404, { error: 'This source file no longer exists.' });
