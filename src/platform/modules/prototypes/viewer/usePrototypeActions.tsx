@@ -29,8 +29,12 @@ type Icon = typeof Link01Icon;
 
 export type Action = { label: string; icon: Icon; onSelect: () => void; destructive?: boolean };
 
+let downloading = false;
+
 // Asks the dev server to build this prototype into one HTML file and saves it.
 async function downloadShare(proto: PrototypeInfo) {
+  if (downloading) return;
+  downloading = true;
   const pending = toast.add({ type: 'loading', title: 'Downloading', timeout: 120_000 });
   try {
     const res = await fetch('/__studio/download', {
@@ -53,6 +57,7 @@ async function downloadShare(proto: PrototypeInfo) {
   } catch (error) {
     toast.add({ type: 'error', title: error instanceof Error ? error.message : "Couldn't download this prototype." });
   } finally {
+    downloading = false;
     toast.close(pending);
   }
 }

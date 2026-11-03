@@ -1,12 +1,16 @@
 // Builds one prototype into a single HTML file a client can open without this studio running.
 // The dev server calls it from the prototype menu (vite-files-plugin.js). A separate Vite build
-// renders that prototype's views with its design system, then the JS, CSS, and fonts are inlined
-// so the file stands alone.
+// bundles the prototype's navigation sidebar and all of its artifacts (views, documents, diagrams,
+// canvases) with its design system, then the JS, CSS, and fonts are inlined so the file stands alone.
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { PROTOTYPE_SYSTEMS } from '../../modules/systems/node/systems.js';
+import { isHelper } from '../../core/fileTypes.ts';
+import { byOrder, parseOrder } from '../../core/order.ts';
+import { jsonIdentity } from '../../core/resourceIdentity.ts';
+import { FILE_TYPES, fileTypeOf } from '../lib/file-types.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../..');
 const STYLES = path.join(ROOT, 'src', 'platform', 'app', 'styles.css');
@@ -22,91 +26,267 @@ const shareFileName = title => {
 };
 
 // A view is a .tsx or .jsx file with a default export (src/platform/modules/view/type.ts).
-// Helpers live in a file or folder whose name starts with _.
 function isView(file) {
   if (!/\.(tsx|jsx)$/.test(file)) return false;
   const source = fs.readFileSync(file, 'utf8');
   return /export\s+default\b|export\s*\{[^}]*\bas\s+default\b/.test(source);
 }
 
-function viewFiles(dir) {
-  const found = [];
-  const walk = folder => {
-    for (const entry of fs.readdirSync(folder, { withFileTypes: true })) {
-      if (entry.name.startsWith('_') || entry.name.startsWith('.')) continue;
-      const full = path.join(folder, entry.name);
-      if (entry.isDirectory()) walk(full);
-      else if (isView(full)) found.push(full);
-    }
+// Discovers all enabled artifacts in navigation order (meta.json "order", then files before folders).
+export function prototypeArtifacts(dir, order) {
+  const walk = (folder, base = '') => {
+    const entries = fs.readdirSync(folder, { withFileTypes: true }).filter(e => !e.name.startsWith('.'));
+    const files = entries
+      .filter(e => e.isFile())
+      .flatMap(e => {
+        if (isHelper(e.name)) return [];
+        const full = path.join(folder, e.name);
+        const fileType = fileTypeOf(e.name);
+        if (!fileType) return [];
+        if (fileType === 'view' && !isView(full)) return [];
+        const source = fs.readFileSync(full, 'utf8');
+        const spec = FILE_TYPES[fileType];
+        const studioId = spec?.identity?.read(source) ?? undefined;
+        const lofi = Boolean(spec?.fidelity?.isLofi(source));
+        const hasMermaidFence = fileType === 'document' && /^[ \t]*`{3,}\s*mermaid\b/m.test(source);
+        return [
+          {
+            name: e.name,
+            path: base + e.name,
+            full,
+            dir: false,
+            fileType,
+            ...(studioId && { studioId }),
+            ...(lofi && { lofi: true }),
+            ...(hasMermaidFence && { hasMermaidFence: true }),
+            ...(fileType === 'diagrams' || fileType === 'canvas' ? { source } : {}),
+          },
+        ];
+      });
+    const folders = entries
+      .filter(e => e.isDirectory() && !isHelper(e.name))
+      .map(e => ({ name: e.name, path: base + e.name, dir: true }));
+    return byOrder([...files, ...folders], order).flatMap(entry =>
+      entry.dir ? walk(path.join(folder, entry.name), `${entry.path}/`) : [entry],
+    );
   };
-  walk(dir);
-  return found.sort();
+  return walk(dir);
 }
 
-function themeClass(meta) {
-  if (meta.systemId == null) return 'prototype-unstyled';
+function resolveSystem(meta) {
+  if (meta.systemId == null) return { theme: 'prototype-unstyled', label: null };
   const system = Object.values(PROTOTYPE_SYSTEMS).find(spec => spec.studioId === meta.systemId);
-  return system?.themeClass && /^[a-z0-9-]+$/.test(system.themeClass) ? system.themeClass : 'prototype-unstyled';
+  const theme = system?.themeClass && /^[a-z0-9-]+$/.test(system.themeClass) ? system.themeClass : 'prototype-unstyled';
+  return { theme, label: system?.label ?? null };
 }
 
-function screenName(file, title, only) {
-  if (only || path.basename(file, path.extname(file)) === 'prototype') return title;
-  return path
-    .basename(file, path.extname(file))
-    .replace(/[-_]+/g, ' ')
-    .replace(/\b\w/g, letter => letter.toUpperCase());
-}
+function entrySource({ title, studioId, systemLabel, theme, artifacts }) {
+  const hasDocs = artifacts.some(item => item.fileType === 'document');
+  const hasDiagrams = artifacts.some(item => item.fileType === 'diagrams' || item.hasMermaidFence);
+  const hasCanvas = artifacts.some(item => item.fileType === 'canvas');
 
-function entrySource({ title, theme, views }) {
-  const only = views.length === 1;
-  const imports = views.map((file, index) => `import View${index} from ${JSON.stringify(file)};`).join('\n');
-  const screens = views
-    .map((file, index) => `{ name: ${JSON.stringify(screenName(file, title, only))}, View: View${index} }`)
-    .join(', ');
-  return `import { useState } from 'react';
-import { createRoot } from 'react-dom/client';
-import ${JSON.stringify(STYLES)};
-${imports}
+  const imports = [
+    `import { createRoot } from 'react-dom/client';`,
+    `import ${JSON.stringify(STYLES)};`,
+    `import { DownloadedPrototype, DownloadedEmbedFrame, artifactDisplayLabel, type DownloadedArtifact } from '@/platform/modules/prototypes/viewer/DownloadedPrototype';`,
+  ];
 
-const screens = [${screens}];
-const dark = matchMedia('(prefers-color-scheme: dark)').matches;
-if (dark) document.documentElement.classList.add('dark');
+  if (hasDocs) {
+    imports.push(`import { DocLayout } from '@/platform/app/docs/DocLayout';`);
+  }
+  if (hasDiagrams) {
+    imports.push(`import { MermaidDiagram } from '@/platform/app/diagrams/MermaidDiagram';`);
+  }
+  if (hasCanvas) {
+    imports.push(
+      `import { useMemo } from 'react';`,
+      `import { Excalidraw, restoreElements, getCommonBounds, FONT_FAMILY } from '@excalidraw/excalidraw';`,
+      `import '@excalidraw/excalidraw/index.css';`,
+      `import '@/platform/modules/canvas/canvas.css';`,
+      `import { parseCanvas } from '@/platform/modules/canvas/format';`,
+      `import { EMBED_HEADER_HEIGHT } from '@/platform/app/artifacts/EmbedFrame';`,
+    );
+  }
 
-function Share() {
-  const [current, setCurrent] = useState(0);
-  const Selected = screens[current].View;
-  return (
-    <div className="${theme} min-h-dvh bg-background text-foreground" data-color-mode={dark ? 'dark' : 'light'}>
-      {screens.length > 1 ? (
-        <div className="sticky top-0 z-10 flex flex-wrap gap-2 border-b border-border bg-background px-4 py-2">
-          {screens.map((screen, index) => (
-            <button
-              key={screen.name}
-              type="button"
-              className={"rounded-md px-2.5 py-1 text-sm " + (index === current ? 'bg-primary text-primary-foreground' : 'text-muted-foreground')}
-              onClick={() => setCurrent(index)}
-            >
-              {screen.name}
-            </button>
-          ))}
+  let viewIndex = 0;
+  let docIndex = 0;
+  const itemsCode = artifacts.map(item => {
+    const baseFields = [
+      `path: ${JSON.stringify(item.path)}`,
+      `fileType: ${JSON.stringify(item.fileType)}`,
+      ...(item.studioId ? [`studioId: ${JSON.stringify(item.studioId)}`] : []),
+      ...(item.lofi ? [`lofi: true`] : []),
+    ];
+    if (item.fileType === 'view') {
+      const id = `View${viewIndex++}`;
+      imports.push(`import ${id} from ${JSON.stringify(item.full)};`);
+      baseFields.push(`View: ${id}`);
+    } else if (item.fileType === 'document') {
+      const id = `Doc${docIndex++}`;
+      imports.push(`import * as ${id} from ${JSON.stringify(item.full)};`);
+      baseFields.push(
+        `Document: ${id}.default`,
+        `frontmatter: (${id} as { frontmatter?: Record<string, unknown> }).frontmatter ?? {}`,
+      );
+    } else if (item.source !== undefined) {
+      baseFields.push(`source: ${JSON.stringify(item.source)}`);
+    }
+    return `{ ${baseFields.join(', ')} }`;
+  });
+
+  const docRenderer = hasDocs
+    ? `renderDocument={({ artifact, Component }) => {
+      const fm = artifact.frontmatter ?? {};
+      return (
+        <div data-doc-scroll className="relative min-h-0 flex-1 overflow-y-auto bg-background text-foreground">
+          <DocLayout
+            Component={Component}
+            title={fm.title}
+            description={fm.description}
+            toc={fm.toc}
+            scrollKey={artifact.path}
+          />
         </div>
-      ) : null}
-      <Selected />
+      );
+    }}`
+    : '';
+
+  const diagramRenderer = hasDiagrams
+    ? `renderDiagram={({ source, compact }) => <MermaidDiagram source={source} compact={compact} fit zoomable={!compact} />}`
+    : '';
+
+  const canvasRenderer = hasCanvas
+    ? `renderCanvas={({ text, dark, resolveLink, selectArtifact, renderEmbed }) => (
+      <DownloadedCanvas
+        key={text}
+        text={text}
+        dark={dark}
+        resolveLink={resolveLink}
+        selectArtifact={selectArtifact}
+        renderEmbed={renderEmbed}
+      />
+    )}`
+    : '';
+
+  const canvasComponent = hasCanvas
+    ? `
+function DownloadedCanvas({
+  text,
+  dark,
+  resolveLink,
+  selectArtifact,
+  renderEmbed,
+}: {
+  text: string;
+  dark: boolean;
+  resolveLink: (link: string | null) => DownloadedArtifact | undefined;
+  selectArtifact: (artifact: DownloadedArtifact) => void;
+  renderEmbed: (target: DownloadedArtifact, width: number, height: number) => React.ReactNode;
+}) {
+  const scene = useMemo(() => {
+    try {
+      const parsed = parseCanvas(text);
+      const elements = restoreElements(parsed.elements as never, null, { refreshDimensions: true });
+      const active = elements.filter(el => !el.isDeleted);
+      let camera = { scrollX: 0, scrollY: 0 };
+      if (active.length) {
+        const [left, top] = getCommonBounds(active);
+        camera = { scrollX: Math.round(48 - left), scrollY: Math.round(48 - top) };
+      }
+      return { elements, background: parsed.background, gridSize: parsed.gridSize ?? undefined, camera };
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : String(error) };
+    }
+  }, [text]);
+  if ('error' in scene) {
+    return (
+      <div role="alert" className="max-w-2xl space-y-3 p-8">
+        <p className="text-sm font-medium">This canvas couldn't be opened.</p>
+        <pre className="overflow-auto rounded-md bg-muted p-3 text-sm whitespace-pre-wrap text-muted-foreground">{scene.error}</pre>
+      </div>
+    );
+  }
+  return (
+    <div className="canvas relative min-h-0 min-w-0 flex-1 overflow-hidden bg-muted/30" data-canvas-opening="ready">
+      <div className="canvas-scene absolute inset-0">
+        <Excalidraw
+          initialData={{
+            elements: scene.elements,
+            appState: {
+              ...scene.camera,
+              theme: dark ? 'dark' : 'light',
+              viewBackgroundColor: scene.background,
+              gridSize: scene.gridSize,
+              currentItemFontFamily: FONT_FAMILY.Nunito,
+            } as never,
+          }}
+          viewModeEnabled
+          theme={dark ? 'dark' : 'light'}
+          validateEmbeddable={link => Boolean(resolveLink(link))}
+          renderEmbeddable={element => {
+            const target = resolveLink(element.type === 'embeddable' ? element.link : null);
+            const width = Math.max(1, element.width - 2);
+            const height = Math.max(1, element.height - EMBED_HEADER_HEIGHT - 2);
+            if (!target) {
+              return (
+                <div className="flex h-full w-full items-center rounded-xl border border-border bg-background px-4 text-xs text-muted-foreground">
+                  Not found
+                </div>
+              );
+            }
+            return (
+              <div data-canvas-embed-id={element.id} className="h-full w-full">
+                <DownloadedEmbedFrame target={target} label={artifactDisplayLabel(target.path)} onOpen={selectArtifact}>
+                  <div inert className="min-h-0" style={{ height, flex: '1 1 auto', pointerEvents: 'none' }}>
+                    {renderEmbed(target, width, height)}
+                  </div>
+                </DownloadedEmbedFrame>
+              </div>
+            );
+          }}
+        />
+      </div>
     </div>
   );
 }
+`
+    : '';
 
-createRoot(document.getElementById('root')).render(<Share />);
+  return `${imports.join('\n')}
+
+const artifacts: DownloadedArtifact[] = [${itemsCode.join(', ')}];
+const scheme = matchMedia('(prefers-color-scheme: dark)');
+document.documentElement.classList.toggle('dark', scheme.matches);
+scheme.addEventListener('change', event => {
+  document.documentElement.classList.toggle('dark', event.matches);
+});
+${canvasComponent}
+createRoot(document.getElementById('root')!).render(
+  <DownloadedPrototype
+    title=${JSON.stringify(title)}
+    studioId=${JSON.stringify(studioId)}
+    systemLabel=${JSON.stringify(systemLabel)}
+    themeClass=${JSON.stringify(theme)}
+    artifacts={artifacts}
+    ${docRenderer}
+    ${diagramRenderer}
+    ${canvasRenderer}
+  />
+);
 `;
 }
 
 function pageHtml(title) {
-  const safe = title.replace(/[&<>"]/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[character]);
+  const safe = title.replace(
+    /[&<>"]/g,
+    character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[character],
+  );
   return `<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
     <title>${safe}</title>
   </head>
   <body>
@@ -166,14 +346,6 @@ function standaloneHtml(outDir) {
     throw new Error("Couldn't download this prototype.");
   }
   html = html.replace(link[0], () => `<style>${css}</style>`);
-  // The studio stylesheet clips the document because the shell scrolls inside the app. This file is the page.
-  html = html.replace(
-    '</head>',
-    () => `<style>
-      html, body { height: auto; min-height: 100%; overflow: auto; }
-      #root { position: static; inset: auto; height: auto; min-height: 100%; overflow: visible; }
-    </style></head>`,
-  );
   // An inline script in the head runs before the page exists. defer applies only to scripts with a src.
   html = html.replace(scriptTag[0], '');
   html = html.replace('</body>', () => `<script>${js}</script></body>`);
@@ -195,11 +367,20 @@ function findFile(dir, test) {
 
 export async function downloadPrototype(dir) {
   dir = path.resolve(dir);
-  const meta = JSON.parse(fs.readFileSync(path.join(dir, 'meta.json'), 'utf8'));
+  const rawMeta = fs.readFileSync(path.join(dir, 'meta.json'), 'utf8');
+  const meta = JSON.parse(rawMeta);
   const title = typeof meta.title === 'string' && meta.title.trim() ? meta.title.trim() : 'Prototype';
-  const views = viewFiles(dir);
-  if (!views.length) throw new Error('This prototype has no screen to download.');
+  let studioId;
+  try {
+    studioId = jsonIdentity(rawMeta) ?? undefined;
+  } catch {
+    studioId = undefined;
+  }
+  const order = meta.order !== undefined ? (parseOrder(meta.order) ?? undefined) : undefined;
+  const artifacts = prototypeArtifacts(dir, order);
+  if (!artifacts.length) throw new Error('This prototype has no screen to download.');
   if (current) throw new Error('A download is already in progress.');
+  const { theme, label: systemLabel } = resolveSystem(meta);
   // Inside the Vite root (`src`) so the built page name stays a normal path. One download at a time.
   const shareRoot = path.join(ROOT, 'src', 'studio-share');
   fs.mkdirSync(shareRoot, { recursive: true });
@@ -207,7 +388,7 @@ export async function downloadPrototype(dir) {
   const htmlPath = path.join(work, 'index.html');
   const outDir = path.join(work, 'out');
   fs.writeFileSync(htmlPath, pageHtml(title));
-  fs.writeFileSync(path.join(work, 'entry.tsx'), entrySource({ title, theme: themeClass(meta), views }));
+  fs.writeFileSync(path.join(work, 'entry.tsx'), entrySource({ title, studioId, systemLabel, theme, artifacts }));
   current = (async () => {
     try {
       await runVite(htmlPath, outDir);

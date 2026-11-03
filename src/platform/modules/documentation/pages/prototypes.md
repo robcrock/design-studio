@@ -111,7 +111,7 @@ To try another system, choose **Duplicate** and select the target system. This c
 
 ## Can I hand someone one prototype?
 
-**Download**, in the prototype's **…** menu, builds that prototype into one HTML file. The person opens the file in a browser and clicks through its screens. The file includes that prototype and its design system, and leaves out Studio and every other prototype. It takes a moment, and it is available while Studio is running on your machine.
+**Download**, in the prototype's **…** menu, builds that prototype into one HTML file. The person opens the file in a browser and moves through its artifacts from the side panel. The file includes that prototype and its design system, and leaves out Studio's editing controls and every other prototype. It takes a moment, and it is available while Studio is running on your machine.
 
 ## What do archive and delete do?
 

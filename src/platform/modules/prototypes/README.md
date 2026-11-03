@@ -107,7 +107,7 @@ Prototype styles use Tailwind classes or CSS Modules with local selectors. Plain
 
 ## Download
 
-While Studio is running locally, **Download** in a prototype's menu builds that prototype into one HTML file. The file includes its views and design system, leaves out Studio and every other prototype, and opens in a browser. It is not the published site.
+While Studio is running locally, **Download** in a prototype's menu builds that prototype into one HTML file. The file includes its navigation, artifacts, and design system, leaves out Studio's editing controls and every other prototype, and opens in a browser. It is not the published site.
 
 ## Archiving and deployment
 
