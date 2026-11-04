@@ -280,7 +280,12 @@ function SystemNav({
     return proto ? [{ id, section, proto }] : [];
   });
   const matchingFoundations = foundations.filter(p => matches('Theme') || matches(p.label));
-  const matchingComponents = components.filter(c => matches('Components') || matches(c.title));
+  const matchingComponents = components.filter(
+    c =>
+      matches('Components') ||
+      matches(c.title) ||
+      Object.values(c.files).some(file => file && matches(`${source.components}/${file}`)),
+  );
   const librariesMatch =
     matches('Libraries') ||
     (manifest.systems[system]?.libraries ?? []).some(library => matches(library.label) || matches(library.description));
