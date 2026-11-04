@@ -105,7 +105,7 @@ function sourcePath(system: string, page: string | undefined, components: System
   const source = getSystemSource(system)!;
   if (!componentPage && (page === 'assets' || page === 'fonts' || page === 'images')) return null;
   if (!componentPage && (!page || page === 'icons'))
-    return intros['/systems/' + system + '/intro.tsx'] ? source.dir + 'intro.tsx' : source.dir + 'system.ts';
+    return intros[`/${systemFolder(system)}/intro.tsx`] ? source.dir + 'intro.tsx' : source.dir + 'system.ts';
   const component = componentPage ? components.find(c => c.slug === page) : undefined;
   if (component) {
     const file = component.files.doc ?? component.files.examples ?? component.files.source;
