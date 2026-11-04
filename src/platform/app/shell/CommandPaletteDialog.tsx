@@ -11,9 +11,9 @@ import {
   CommandItem,
   CommandList,
 } from '@/platform/systems/studio/components/command';
-import { findArtifact, findPrototype, firstArtifact } from '@/platform/app/data/manifest';
 import { moduleApps, type PaletteContext } from '@/platform/app/modules';
-import type { Artifact, Prototype } from '@/platform/app/data/types';
+import type { Artifact } from '@/platform/app/data/types';
+import { paletteLocation } from './paletteLocation';
 
 const rootApi = getRouteApi('__root__');
 
@@ -38,10 +38,7 @@ export default function CommandPaletteDialog({
   };
 
   // The open prototype, once its items have loaded (the route loads them: manifest.ts).
-  const openRef =
-    params.contributor && params.prototype ? findPrototype(manifest, params.contributor, params.prototype) : undefined;
-  const current = openRef?.artifacts ? (openRef as Prototype) : undefined;
-  const openItem = current && (params._splat ? findArtifact(current, params._splat) : firstArtifact(current));
+  const { current, item: openItem } = paletteLocation(manifest, params);
   const isOpen = (item: Artifact) => item === openItem;
   const onHome = Boolean(matchRoute({ to: '/' }));
   const context: PaletteContext = { manifest, current, isOpen, go };
