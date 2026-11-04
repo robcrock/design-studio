@@ -977,6 +977,7 @@ export default function FileTree({
               pressed={filterOpen}
               onClick={() => {
                 setExpanded(true);
+                if (filterOpen) setFilter('');
                 setFilterOpen(o => !o);
               }}
             >
