@@ -73,7 +73,7 @@ export function ArtifactSketch({ kind }: { kind: string }) {
           <rect x='63' y='9' width='314' height='132' rx='4' fill={paper} stroke={border} />
           <path d='M63 35H377M126 35V141' stroke={border} />
           <text x='77' y='27' fontSize='11' fill={muted}>
-            Feedback Inbox
+            Feedback inbox
           </text>
           <path d='M76 51H111M76 63H101M76 75H105' stroke='currentColor' opacity='.25' />
           <rect x='140' y='47' width='61' height='16' rx='3' fill='currentColor' opacity='.08' />
@@ -190,8 +190,8 @@ function Arrow({ x, y, length = 48 }: { x: number; y: number; length?: number })
   return <path d={`M${x} ${y}h${length}m-7 -5l7 5l-7 5`} stroke={muted} fill='none' />;
 }
 export function StorySketch({ kind, exampleIds }: { kind: string; exampleIds?: string[] }) {
-  const showProduct = exampleIds?.includes('feedback-inbox') ?? true;
-  const showMarketing = exampleIds?.includes('design-studio-marketing') ?? true;
+  const showProduct = exampleIds?.includes('echo-app') ?? true;
+  const showMarketing = exampleIds?.includes('echo-website') ?? true;
   return (
     <svg viewBox='0 0 440 180' className='h-40 w-full text-foreground' role='img' aria-label={storyLabels[kind]}>
       {kind === 'toolkit' && (
@@ -357,7 +357,7 @@ export function StorySketch({ kind, exampleIds }: { kind: string; exampleIds?: s
               </text>
               <path d='M32 69H50M32 82H45M32 95H49' stroke={ink} opacity='.25' />
               <text x='74' y='72' fontSize='11' fill={ink}>
-                Feedback Inbox
+                Echo app
               </text>
               {[0, 1, 2].map(row => (
                 <g key={row}>
@@ -389,15 +389,15 @@ export function StorySketch({ kind, exampleIds }: { kind: string; exampleIds?: s
                 Marketing example
               </text>
               <text x='249' y='66' fontSize='13' fill={ink}>
-                Design with intent.
+                Hear every
               </text>
               <text x='249' y='83' fontSize='13' fill={ink}>
-                Build with an agent.
+                customer.
               </text>
               <path d='M249 96H394M249 104H359' stroke={ink} opacity='.25' />
               <rect x='249' y='118' width='58' height='19' rx='4' fill={ink} />
               <text x='278' y='127.5' textAnchor='middle' dominantBaseline='middle' fontSize='9' fill={paper}>
-                Get started
+                Start free
               </text>
               <rect x='320' y='116' width='85' height='31' rx='3' fill={paper} stroke={border} />
               <path d='M331 126H393M331 137H370' stroke={ink} opacity='.2' />

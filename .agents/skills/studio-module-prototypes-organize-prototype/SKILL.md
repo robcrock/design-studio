@@ -1,6 +1,6 @@
 ---
 name: studio-module-prototypes-organize-prototype
-description: "Rename, move, duplicate, archive, restore, or remove a Design Studio prototype and preserve its links and original work."
+description: "Rename, move, duplicate, archive, restore, download, or remove a Design Studio prototype and preserve its links and original work."
 ---
 
 <!-- studio:generated-skill -->

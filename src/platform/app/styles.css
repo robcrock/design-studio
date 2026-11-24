@@ -6,7 +6,10 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 /* @studio:tailwind-theme */
-@plugin "@tailwindcss/typography";
+/* Namespaced, so a system's own `prose` class never generates the plugin's styles. */
+@plugin "@tailwindcss/typography" {
+  className: studio-prose;
+}
 
 /* Tailwind scans the project for class names and reloads the page when a scanned file
    that isn't code changes. These are data, never classes, so skip them: editing a

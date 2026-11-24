@@ -38,6 +38,7 @@ import {
   MODULES,
   MODULE_DIRS,
   ENABLED_MODULES,
+  LIBRARY_MODULES,
   SECTION_KEYS,
   PROTOTYPE_DIRS,
   declarationProblems,
@@ -96,7 +97,7 @@ const themePrototypePolicy = scopePolicy({
   root: ROOT,
   systems: PROTOTYPE_SYSTEMS,
   defaultSystem: DEFAULT_SYSTEM,
-  modules: ENABLED_MODULES,
+  modules: LIBRARY_MODULES,
   prototypeDirs: PROTOTYPE_DIRS,
 });
 const prototypeThemeFiles = [path.join(ROOT, 'src/prototypes'), ...PROTOTYPE_DIRS.map(dir => path.join(ROOT, dir))]
@@ -161,7 +162,7 @@ const runtimePolicy = scopePolicy({
   root: ROOT,
   systems: PROTOTYPE_SYSTEMS,
   defaultSystem: DEFAULT_SYSTEM,
-  modules: ENABLED_MODULES,
+  modules: LIBRARY_MODULES,
   prototypeDirs: PROTOTYPE_DIRS,
 });
 problems.push(...runtimePolicy.apiEntryProblems());
@@ -196,8 +197,7 @@ for (const file of [...sourceFiles(path.join(ROOT, 'src')), path.join(ROOT, 'vit
     const targetId = moduleOf(resolved);
     if (targetId === null || targetId === inside) continue;
     const publicEntry =
-      MODULES[targetId].lib &&
-      ENABLED_MODULES.some(m => m.id === targetId) &&
+      LIBRARY_MODULES.some(m => m.id === targetId) &&
       specifier === `@module/${targetId}` &&
       /^index\.[jt]sx?$/.test(path.relative(path.join(moduleDir(targetId), 'lib'), resolved));
     const isDeclaration = /^module(\.ts)?$/.test(path.relative(moduleDir(targetId), resolved));

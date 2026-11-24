@@ -8,7 +8,7 @@ import { MODULE_ROOTS, TEAM_MODULES_ROOT } from '../roots.ts';
 
 // This copy's API version. A module's `requires` declares the oldest platform it works with.
 // Current declarations and #studio/* entries are authoritative; see context/modules.md.
-export const PLATFORM_VERSION = '0.1.2';
+export const PLATFORM_VERSION = '0.4.0';
 export const CORE_PAGE_KEYS = ['settings'] as const;
 
 // A bounded schema: every named primitive field is required; module checks may add domain constraints.

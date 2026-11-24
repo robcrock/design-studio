@@ -91,6 +91,24 @@ test('a missing compilation acknowledgement has a bounded unknown outcome', asyn
   tracker.dispose();
 });
 
+test('inputs a view loads lazily after its commit are acknowledged without another commit', async () => {
+  let loaded = false;
+  const tracker = createCompiledTracker(
+    async () => a,
+    () => {},
+    () => loaded,
+    200,
+    5,
+  );
+  await tracker.ready();
+  assert.equal(tracker.state.phase, 'preparing');
+  loaded = true; // e.g. a panel imported from an effect finishes evaluating
+  await new Promise(done => setTimeout(done, 30));
+  assert.equal(tracker.state.phase, 'ready');
+  assert.equal(freshness(tracker.state), 'current');
+  tracker.dispose();
+});
+
 test('a late compilation error cannot mark already committed repaired inputs as failed', async () => {
   let disk = a,
     compiled = a;

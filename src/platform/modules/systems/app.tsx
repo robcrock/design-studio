@@ -1,12 +1,12 @@
 import { Suspense } from 'react';
 // Systems in the app: its rail button, its routes (/systems, /systems/<system>, /systems/<system>/<page>),
 // and prototype systems in the ⌘K palette. The pages are in src/platform/modules/systems/pages/.
-import { createRoute, Outlet, notFound, useRouterState, lazyRouteComponent } from '@tanstack/react-router';
+import { createRoute, Outlet, notFound, redirect, useRouterState, lazyRouteComponent } from '@tanstack/react-router';
 import { Shapes01Icon } from '@hugeicons/core-free-icons';
 import { CommandGroup, CommandItem, CommandSeparator } from '@/platform/systems/studio/components/command';
 import { HomeSection } from '@/platform/app/items/HomeSection';
 import { ItemRow } from '@/platform/app/items/ItemRow';
-import { getSystems, systemKeyFromIdentity, systemPath } from '#studio/systems';
+import { getSystem, getSystems, systemKeyFromIdentity, systemPath } from '#studio/systems';
 const PROTOTYPE_SYSTEMS = getSystems({ role: 'prototype' });
 const SYSTEM_SPECS = getSystems();
 import { APP_NAME } from '@/platform/app/data/config';
@@ -38,7 +38,15 @@ const systemsTitle = (...parts: (string | undefined)[]) =>
 
 async function loadSystemPage(params: { system: string; page?: string; _splat?: string }, mode?: 'source') {
   const system = systemKeyFromIdentity(params.system);
-  if (!system) throw notFound();
+  if (!system) {
+    // A folder name is how people think of a system: send it to the permanent address.
+    if (getSystem(params.system))
+      throw redirect({
+        href: [systemPath(params.system), params.page, params._splat].filter(Boolean).join('/'),
+        replace: true,
+      });
+    throw notFound();
+  }
   // Preload the layout too, so its initial Suspense boundary does not flash blank.
   await SystemsPage.preload?.();
   const manifest = await loadManifest();

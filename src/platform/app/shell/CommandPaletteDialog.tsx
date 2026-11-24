@@ -1,7 +1,7 @@
 // The ⌘K palette's dialog. It loads shortly after the app starts (CommandPalette.tsx), so cmdk
 // isn't in the main bundle.
 import { Fragment, type RefObject } from 'react';
-import { getRouteApi, useMatchRoute, useNavigate, useParams, type NavigateOptions } from '@tanstack/react-router';
+import { getRouteApi, useMatches, useMatchRoute, useNavigate, type NavigateOptions } from '@tanstack/react-router';
 import {
   Command,
   CommandDialog,
@@ -11,7 +11,6 @@ import {
   CommandItem,
   CommandList,
 } from '@/platform/systems/studio/components/command';
-import { findArtifact, findPrototype, firstArtifact } from '@/platform/app/data/manifest';
 import { moduleApps, type PaletteContext } from '@/platform/app/modules';
 import type { Artifact, Prototype } from '@/platform/app/data/types';
 
@@ -27,7 +26,6 @@ export default function CommandPaletteDialog({
   returnFocus: RefObject<HTMLElement | null>;
 }) {
   const manifest = rootApi.useLoaderData();
-  const params = useParams({ strict: false });
   const matchRoute = useMatchRoute();
   const navigate = useNavigate();
 
@@ -37,12 +35,19 @@ export default function CommandPaletteDialog({
     navigate(to);
   };
 
-  // The open prototype, once its items have loaded (the route loads them: manifest.ts).
-  const openRef =
-    params.contributor && params.prototype ? findPrototype(manifest, params.contributor, params.prototype) : undefined;
-  const current = openRef?.artifacts ? (openRef as Prototype) : undefined;
-  const openItem = current && (params._splat ? findArtifact(current, params._splat) : firstArtifact(current));
-  const isOpen = (item: Artifact) => item === openItem;
+  // What's open is what the routes loaded (router.tsx), so the palette never resolves an address itself.
+  const loaded = useMatches().map(
+    match => match.loaderData as { proto?: Prototype; artifactId?: string; artifactPath?: string } | undefined,
+  );
+  const openProto = loaded.find(data => data?.proto)?.proto;
+  const current =
+    openProto &&
+    (manifest.prototypes.find(p => p.contributorKey === openProto.contributorKey && p.id === openProto.id) as
+      | Prototype
+      | undefined);
+  const openItem = loaded.find(data => data?.artifactPath);
+  const isOpen = (item: Artifact) =>
+    openItem?.artifactId ? item.studioId === openItem.artifactId : item.path === openItem?.artifactPath;
   const onHome = Boolean(matchRoute({ to: '/' }));
   const context: PaletteContext = { manifest, current, isOpen, go };
 

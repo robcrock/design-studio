@@ -22,7 +22,7 @@ import {
 import { Badge } from '@/platform/systems/studio/components/badge';
 import { Alert, AlertTitle, AlertDescription } from '@/platform/systems/studio/components/alert';
 import { Card, CardHeader, CardContent, CardDescription } from '@/platform/systems/studio/components/card';
-import { adminProblems, type StudioConfig } from '@/platform/core/config';
+import { ASSET_LIMIT_KB, adminProblems, type StudioConfig } from '@/platform/core/config';
 import { useStudioSettings } from '@/platform/app/settings/useStudioSettings';
 
 // Presentation groups do not change ownership or availability. A module names its group and place in module.ts
@@ -34,7 +34,7 @@ const moduleGroups = [
   { id: 'extensions', title: 'Other modules' },
 ];
 
-const fields = ['name', 'tagline', 'usage', 'defaultSystem', 'modules', 'admins'] as const;
+const fields = ['name', 'tagline', 'usage', 'defaultSystem', 'assetLimitKB', 'modules', 'admins'] as const;
 function Section({
   id,
   title,
@@ -242,6 +242,30 @@ export default function Settings() {
                   </Select>
                   <p id='system-description' className='text-xs text-muted-foreground'>
                     Existing prototypes keep their current system when you change this default.
+                  </p>
+                </div>
+                <div className='space-y-2'>
+                  <Label htmlFor='asset-limit'>Largest file size (KB)</Label>
+                  <Input
+                    id='asset-limit'
+                    type='number'
+                    min={1}
+                    required
+                    inputMode='numeric'
+                    aria-describedby='asset-limit-description'
+                    value={Number.isFinite(draft.assetLimitKB) ? draft.assetLimitKB : ''}
+                    onChange={event => update({ assetLimitKB: event.target.valueAsNumber })}
+                  />
+                  <p id='asset-limit-description' className='text-xs text-muted-foreground'>
+                    Commits and CI block larger files, which make every clone slower. New studios start at{' '}
+                    {ASSET_LIMIT_KB} KB. For video and other large media, see{' '}
+                    <Link
+                      to={'/documentation/context/platform.core/context/assets#large-files' as never}
+                      className='underline underline-offset-4'
+                    >
+                      Large files
+                    </Link>
+                    .
                   </p>
                 </div>
               </fieldset>

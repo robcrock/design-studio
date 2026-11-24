@@ -14,7 +14,8 @@
     "text": true,
     "view": true,
     "onboarding": true,
-    "contributors": true
+    "contributors": true,
+    "dialkit": true
   },
   "systems": [
     "product",
@@ -25,5 +26,6 @@
     "v4576ka1mbpbqdp1": []
   },
   "defaultSystem": "4f3m7z08hk5a0k53",
-  "admins": []
+  "admins": [],
+  "assetLimitKB": 750
 }

@@ -1,4 +1,5 @@
-import { ROOT, safeScope } from './paths.js';
+import { ROOT, prototypeDir, safeScope } from './paths.js';
+import { SYSTEM_CONTENT_NOTE } from './ops.js';
 // Who may change a prototype's files: the policy of its section (src/platform/core/permissions.ts).
 // Part of the dev server's file layer (src/platform/node/build/vite-files-plugin.js).
 import fs from 'node:fs';
@@ -12,7 +13,7 @@ import { systemRegistered } from '../../../core/config.ts';
 import { MODULES } from '../../lib/modules.js';
 import { jsonIdentity, resourceId } from '../../../core/resourceIdentity.ts';
 import { canonicalDirectory } from '../../lib/safe-paths.js';
-import { systemIdOfPath } from '../../../core/roots.ts';
+import { SYSTEM_CONTENT_KEY, systemIdOfPath } from '../../../core/roots.ts';
 import { systemDirOf } from '../../lib/system-folders.js';
 
 // Artifact ownership composes with current resource grants. Shared system content
@@ -66,6 +67,16 @@ export const ownerError = (contributor, me) =>
   policyOf(contributor) === 'open'
     ? 'Only an Admin or an assigned system maintainer can change this shared resource. You can propose changes in a pull request.'
     : whyNot(policyOf(contributor), me);
+
+// A whole prototype you may rename, duplicate, archive, restore, or delete: its folder, or why not (and the HTTP
+// status for it). The dev server's routes and pnpm studio both check this, so the menu and the agent agree.
+export function ownedPrototype(contributor, prototype, me) {
+  const dir = prototypeDir(contributor, prototype);
+  if (!dir) return { status: 404, error: 'This prototype no longer exists.' };
+  if (contributor === SYSTEM_CONTENT_KEY) return { status: 403, error: SYSTEM_CONTENT_NOTE };
+  if (!owns(contributor, me, dir)) return { status: 403, error: ownerError(contributor, me) };
+  return { dir };
+}
 
 // Refresh grants from disk on every write, including while settings are restarting.
 export function canWriteSource(me, file, root = ROOT, content) {

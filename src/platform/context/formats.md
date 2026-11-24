@@ -30,12 +30,12 @@ Writers keep the field. Settings writes are read-modify-write of the parsed file
 
 ## Explicit migration
 
-Builds and ordinary saves never upgrade stored formats. Unknown future versions are refused. A format change updates `FORMAT_VERSIONS` and follows the [release compatibility policy](releasing.md#versions).
+Builds and ordinary saves never upgrade stored formats. Unknown future versions are refused. A format change updates `FORMAT_VERSIONS` and follows the [release compatibility policy](maintainers/releasing.md#versions).
 
 The public baseline uses version 1 for settings, prototype metadata, and contributor profiles. Contributor profiles declare module preference namespaces. Earlier development shapes are not supported formats; changing a version number alone does not make an obsolete shape valid. The [preference initialization workflow](contributor-preferences.md) adds namespaces for installed modules using current declarations.
 
 ## Related contracts
 
 - [Studio configuration](config.md) defines `studio.config.json`.
-- [Resource identity](resource-identity.md) defines the permanent IDs the same files carry.
+- [Resource identity](maintainers/resource-identity.md) defines the permanent IDs the same files carry.
 - [Ownership and updates](ownership.md) defines how seed and team files change during an update.

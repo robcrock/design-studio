@@ -6,7 +6,12 @@ import path from 'node:path';
 import { writeProfiles } from './fixtures/contributors.js';
 import { writeFixtureConfig } from './fixtures/identities.js';
 import { markdownIdentity } from '../../core/resourceIdentity.ts';
-import { planPrototypeIdentification, applyPrototypeIdentification } from './prototype-identification.js';
+import {
+  planPrototypeIdentification,
+  applyPrototypeIdentification,
+  identifyAuthored,
+  prototypeFolderOf,
+} from './prototype-identification.js';
 
 const types = {
   document: { systemUsage: 'independent', inPrototype: true, extensions: ['.md'], identity: markdownIdentity },
@@ -143,4 +148,31 @@ test('scoped assignment rollback preserves a concurrent edit and reports require
   assert.throws(() => applyPrototypeIdentification(root, types, plan, 'pat'), /some files could not be restored/);
   assert.equal(fs.readFileSync(concurrent, 'utf8'), 'Concurrent editor content\n');
   assert.equal(fs.readFileSync(path.join(root, plan.changes[1].path), 'utf8'), plan.changes[1].before);
+});
+
+test('authoring tools identify only the touched folders the contributor may edit', t => {
+  const { root, folder } = fixture(t);
+  const other = 'src/prototypes/sam/unrelated';
+  fs.mkdirSync(path.join(root, other), { recursive: true });
+  fs.writeFileSync(path.join(root, other, 'meta.json'), '{"formatVersion":1,"title":"Other","systemId":null}');
+  const touched = [`${folder}/notes.md`, `${other}/meta.json`, 'src/systems/product/system.ts'].map(prototypeFolderOf);
+  assert.deepEqual(touched, [folder, other, null]);
+  let resolved = 0;
+  const results = identifyAuthored(root, types, touched, () => (resolved++, 'pat'));
+  assert.equal(resolved, 1);
+  assert.equal(results.find(result => result.folder === folder).changed, 2);
+  assert.match(results.find(result => result.folder === other).error.message, /Only the prototype owner/);
+  assert.equal(
+    fs.readFileSync(path.join(root, other, 'meta.json'), 'utf8'),
+    '{"formatVersion":1,"title":"Other","systemId":null}',
+  );
+  // Nothing left to assign: no contributor lookup, no writes.
+  assert.deepEqual(
+    identifyAuthored(root, types, [folder], () => assert.fail('resolved')),
+    [],
+  );
+  assert.deepEqual(
+    identifyAuthored(root, types, [null], () => assert.fail('resolved')),
+    [],
+  );
 });

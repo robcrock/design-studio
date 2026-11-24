@@ -40,7 +40,7 @@ The command menu groups Places, Systems, Prototypes, and Manual in that order. I
 
 Manual chapters and owner READMEs edit their own complete documents through the shared documentation editor. Context and skill files use their existing file access policies. Navigation exposes Edit source, Open in editor, Reveal in Finder, Copy link, and Copy path where local permissions allow them. Instruction document menus have no rename or delete actions.
 
-The [shared editor](../../context/source.md) supplies keyboard controls, version checks, and unsaved-change handling. Published pages retain reading and copying without repository editing or operating-system actions.
+The [shared editor](../../context/maintainers/source.md) supplies keyboard controls, version checks, and unsaved-change handling. Published pages retain reading and copying without repository editing or operating-system actions.
 
 Source access is limited to indexed owner documents and locally repairable Manual files. Removing a capability removes its documents from the allowlist; retained chapters remain repairable when Documentation is enabled.
 
@@ -56,4 +56,4 @@ Source access is limited to indexed owner documents and locally repairable Manua
 
 Follow [Documentation standards](../../context/documentation-standards.md) and [Maintain documentation](../../skills/maintain-documentation/SKILL.md) for authoring and verification.
 
-Page loading follows the [shared navigation handoff](../../context/source.md#navigation-handoff). Route loaders prepare the reader and content before replacing the current page.
+Page loading follows the [shared navigation handoff](../../context/maintainers/source.md#navigation-handoff). Route loaders prepare the reader and content before replacing the current page.

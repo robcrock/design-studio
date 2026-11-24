@@ -79,14 +79,34 @@ if (!Array.isArray(scene!.elements)) fail(`${first} isn't a canvas: it has no li
 if ((scene!.studioVersion ?? 1) > FORMAT_VERSION)
   fail(`${first} was written by a newer copy of the app. Update before changing it.`);
 
-// What the tools need to know about the app: the artifacts in this canvas's prototype, from the manifest.
-const manifestFile = path.join(ROOT, 'public', 'prototypes', 'manifest.json');
-if (!fs.existsSync(manifestFile)) fail('There is no manifest yet. Run: node src/platform/node/build/build-manifest.js');
-type PrototypeRef = { contributorKey: string; id: string; studioId?: string };
-const manifest = JSON.parse(fs.readFileSync(manifestFile, 'utf8')) as {
-  prototypes: PrototypeRef[];
-  sections?: Record<string, PrototypeRef[]>;
+// What the tools need to know about the app: the artifacts in this canvas's prototype, from the manifest. Files written
+// directly get their identity first, and the manifest is built fresh, so a view or canvas made a moment ago is included
+// whether or not the dev server is running.
+type PrototypeRef = {
+  contributorKey: string;
+  id: string;
+  studioId?: string;
+  screens?: { name: string; width: number }[];
 };
+const lib = (file: string) => pathToFileURL(path.join(ROOT, 'src', 'platform', 'node', file)).href;
+const [{ identifyAuthored }, { INSTALLED_FILE_TYPES }, { resolveContributor }, { buildManifest }] = (await Promise.all([
+  import(lib('lib/prototype-identification.js')),
+  import(lib('lib/installed-file-types.js')),
+  import(lib('cli/resolve-contributor.js')),
+  import(lib('build/build-manifest.js')),
+])) as [
+  { identifyAuthored: (...args: unknown[]) => { folder: string; error?: Error }[] },
+  { INSTALLED_FILE_TYPES: unknown },
+  { resolveContributor: () => string | null },
+  {
+    buildManifest: (options: { quiet: boolean }) => {
+      manifest: { prototypes: PrototypeRef[]; sections?: Record<string, PrototypeRef[]> };
+    };
+  },
+];
+if (!inSection)
+  identifyAuthored(ROOT, INSTALLED_FILE_TYPES, [`src/prototypes/${contributor}/${prototype}`], resolveContributor);
+const { manifest } = buildManifest({ quiet: true });
 const everything = [...manifest.prototypes, ...Object.values(manifest.sections ?? {}).flat()];
 // A prototype's artifacts are in a file of their own (src/platform/node/build/build-manifest.js).
 const itemsOf = (x: PrototypeRef): { path: string; fileType: string; studioId?: string }[] => {
@@ -108,12 +128,19 @@ const title = (p: string) =>
     .join(' ');
 const current =
   everything.find(x => x.contributorKey === contributor && x.id === prototype) ??
-  fail('This canvas prototype is missing from the manifest. Rebuild it first.');
-const base = inSection ? addressOf(contributor, prototype) : prototypeAddress(resourceId(current.studioId));
+  fail('This canvas prototype is missing from the manifest. Check its meta.json.');
+// Identity was assigned above when this contributor may edit the prototype; otherwise its owner or an Admin has to.
+const identified = (id: string | undefined, what: string) =>
+  id
+    ? resourceId(id)
+    : fail(`${what} has no identity yet. Its owner or an Admin can assign it with pnpm studio identify.`);
+const base = inSection
+  ? addressOf(contributor, prototype)
+  : prototypeAddress(identified(current.studioId, 'This canvas prototype'));
 const linkOf = (x: PrototypeRef, item: { path: string; studioId?: string }) =>
   inSection
     ? `${addressOf(x.contributorKey, x.id)}/${artifactSlug(item.path)}`
-    : artifactAddress(resourceId(x.studioId), resourceId(item.studioId));
+    : artifactAddress(identified(x.studioId, `Prototype ${x.id}`), identified(item.studioId, item.path));
 const ctx: Ctx = {
   base,
   artifact(appPath) {
@@ -135,13 +162,16 @@ const ctx: Ctx = {
       );
     if (!artifact) return null;
     const type = FILE_TYPES[artifact.fileType];
+    const preview = Boolean(type?.capabilities.embeds.includes('canvas'));
     return {
       path: appPath,
       sourcePath: artifact.path,
       title: title(artifact.path),
       type: artifact.fileType,
       typeLabel: type?.label ?? 'File',
-      preview: Boolean(type?.capabilities.embeds.includes('canvas')),
+      preview,
+      // The same rule as the app's resolveArtifact.ts: a live preview of a type that uses a system shows its screens.
+      ...(preview && type?.systemUsage === 'assigned' && { screens: proto.screens }),
     };
   },
   artifacts: () =>
@@ -161,6 +191,13 @@ const ctx: Ctx = {
 };
 
 try {
+  if (tool === 'mermaid') {
+    // The Mermaid converter reads SVG with a browser's DOM; linkedom is one in Node.
+    const { DOMParser, parseHTML } = await import('linkedom');
+    Object.assign(globalThis, { DOMParser, document: parseHTML('<html><body></body></html>').document });
+    const { layoutMermaid } = await import('./mermaid.ts');
+    args = { ...(args as object), diagram: await layoutMermaid((args as { source?: unknown }).source) };
+  }
   const result = run(scene!.elements!, tool, args, ctx);
   if (!['describe', 'help', 'artifacts'].includes(tool)) {
     const { resolveContributor } = await import(

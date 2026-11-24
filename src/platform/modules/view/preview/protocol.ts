@@ -10,7 +10,8 @@ export type Target = {
   artifactId: string | null;
 };
 export type Surface = 'page' | 'embed';
-export type Config = { target: Target; href: string; dark: boolean; surface: Surface };
+// `still`: an embed holds its motion once rendered (README.md#still-embeds). A page is never still.
+export type Config = { target: Target; href: string; dark: boolean; surface: Surface; still: boolean };
 export type Envelope = {
   channel: typeof CHANNEL;
   version: typeof VERSION;
@@ -55,7 +56,9 @@ export function validConfig(value: unknown): value is Config {
     validTarget(value.target) &&
     validHref(value.href) &&
     typeof value.dark === 'boolean' &&
-    (value.surface === 'page' || value.surface === 'embed')
+    (value.surface === 'page' || value.surface === 'embed') &&
+    typeof value.still === 'boolean' &&
+    !(value.surface === 'page' && value.still)
   );
 }
 function envelope(value: unknown): value is Record<string, unknown> & Envelope {
@@ -116,9 +119,10 @@ export function acceptsPreview(
     (event.data.kind === 'hello' || (event.data.runtime === runtime && event.data.identity === identity))
   );
 }
-export function previewUrl(config: Config, session: string, base: string) {
+// `page` is the document that runs the app (src/platform/app/data/downloaded.ts appPage).
+export function previewUrl(config: Config, session: string, page: string) {
   const params = new URLSearchParams({ 'studio-preview': '1', session, config: JSON.stringify(config) });
-  return base + 'index.html?' + params;
+  return page + '?' + params;
 }
 export function readBootstrap(search: string): { config: Config; session: string } {
   if (search.length > 8192) throw new Error('Preview address is too long.');

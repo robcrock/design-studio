@@ -3,17 +3,18 @@ import { isTeamCode, apiEntryOf } from '../../core/modules/boundaries.ts';
 import { moduleIdOfPath } from '../../core/roots.ts';
 import { fileURLToPath } from 'node:url';
 import { PROTOTYPE_SYSTEMS, DEFAULT_SYSTEM } from '../../modules/systems/node/systems.js';
-import { ENABLED_MODULES, PROTOTYPE_DIRS } from '../lib/modules.js';
+import { LIBRARY_MODULES, PROTOTYPE_DIRS } from '../lib/modules.js';
 import { scopePolicy } from '../lib/scope.js';
 import { importsOf } from '../lib/imports.js';
 import { cssProblems } from '../lib/css-scope.js';
+import { packageName } from '../lib/system-dependencies.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../..');
 export default function importGuard({
   root = ROOT,
   systems = PROTOTYPE_SYSTEMS,
   defaultSystem = DEFAULT_SYSTEM,
-  modules = ENABLED_MODULES,
+  modules = LIBRARY_MODULES,
   prototypeDirs = PROTOTYPE_DIRS,
 } = {}) {
   const policy = scopePolicy({ root, systems, defaultSystem, modules, prototypeDirs });
@@ -34,7 +35,9 @@ export default function importGuard({
       const scope = policy.scopeOf(file);
       const rel = path.relative(root, file).split(path.sep).join('/');
       if (!scope && moduleIdOfPath(rel) === undefined && !isTeamCode(rel)) return null;
-      if (scope && /\.css($|\?)/.test(source) && !/\.module\.css($|\?)/.test(source))
+      // A module library may load a package's own stylesheet (the package scopes it); repository CSS stays modular.
+      const packageStylesheet = scope?.kind === 'Module library' && packageName(source);
+      if (scope && /\.css($|\?)/.test(source) && !/\.module\.css($|\?)/.test(source) && !packageStylesheet)
         this.error(
           `${scope.kind} scope: ${file} imports global CSS. Use CSS Modules for runtime styles; design-system themes are loaded by the platform.`,
         );

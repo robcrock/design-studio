@@ -39,7 +39,7 @@ Each teammate has their own contributor folder for prototypes. Your agent identi
 
 Studio checks ownership when you edit locally. Build checks prevent prototypes from depending on another prototype's code. The supplied GitHub workflow checks the build and flags changes outside a contributor's assigned scope for review.
 
-These boundaries let teammates keep building and merging their own prototype work independently. Shared systems and platform code need broader review because other people's work depends on them. Your repository owner configures GitHub's required checks and reviews; see [Checks and fixes](/documentation/context/platform.core/context/checks) for details.
+These boundaries let teammates keep building and merging their own prototype work independently. Shared systems and platform code need broader review because other people's work depends on them. Your repository owner configures GitHub's required checks and reviews; see [Checks and fixes](/documentation/context/platform.core/context/maintainers/checks) for details.
 
 ## How do we share changes?
 
@@ -48,7 +48,7 @@ For a team using GitHub, we recommend protecting **main**, the shared branch, an
 Your agent can handle the Git work:
 
 1. **Work on a branch.** A branch keeps your changes separate from main. The agent saves files, commits versions, and pushes the branch to GitHub.
-2. **Open a pull request.** This proposes bringing your branch into main. Ask the agent to summarize the changes and check results when you are ready to share them for review.
+2. **Open a pull request.** This proposes bringing your branch into main. Ask the agent to summarize the changes and check results when you are ready to share them for review. A reviewer can try the branch, editing included, without a local studio: on the pull request, choose **Code**, then **Codespaces**, and create a codespace. Studio opens in a new browser tab once it has installed.
 3. **Merge when ready.** Routine prototype changes can move through quickly. Leave the request open, or mark it as a draft, when you want discussion or review. Merge it yourself when ready, or enable [GitHub auto-merge](https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/automatically-merging-a-pull-request) if your repository supports it. Auto-merge waits for required checks and reviews.
 4. **Merge and update.** Merging brings the work into main. Teammates pull the changes into their local copies. If publishing is configured to run after a merge, the site updates when deployment succeeds. Otherwise, publishing is a separate step.
 

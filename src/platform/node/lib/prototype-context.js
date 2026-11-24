@@ -77,7 +77,6 @@ export function prototypeContext({ root, folder, config, systems, modules, contr
           },
     modules: { enabled: modules.map(module => module.id) },
     guidance: {
-      working: 'src/platform/context/working-in-studio.md',
       prototype: 'src/platform/modules/prototypes/README.md',
     },
   };

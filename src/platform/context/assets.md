@@ -40,10 +40,20 @@ Assets support artifacts; they do not become navigable artifacts themselves. Fol
 
 ## Asset Guard
 
-Asset Guard prevents oversized files from entering Git history. The pre-commit hook in `.husky/pre-commit` runs `src/platform/node/check/check-asset-size.js --staged`. It checks added and modified files using their staged contents and blocks the commit when a file exceeds 750 KB, unless explicitly allowlisted. CI runs the same guard against committed changes.
+Asset Guard prevents oversized files from entering Git history. The pre-commit hook in `.husky/pre-commit` runs `src/platform/node/check/check-asset-size.js --staged`. It checks added and modified files using their staged contents and blocks the commit when a file exceeds the limit the studio declares. CI runs the same guard against committed changes.
 
 The guard applies to all files, including assets in `public/`. Existing oversized files are checked when modified.
 
-Resize or compress a flagged asset, then stage the smaller version and commit again. For images, use WebP or compressed JPEG at the display size. Reserve allowlist exceptions for files that cannot be reduced.
+Resize or compress a flagged asset, then stage the smaller version and commit again. For images, use WebP or compressed JPEG at the display size.
 
-Git retains committed versions, so deleting a large asset later does not remove its earlier versions from history. Catching it before commit keeps the repository and future clones smaller.
+The limit is `assetLimitKB` in `studio.config.json`, the largest file in KB a commit may add or change. The guard reads it from the same staged copy or commit as the files it checks, so a new limit counts once it is committed. A missing or invalid `assetLimitKB` stops the check and says what to declare. When a file is blocked, the message links to [Large files](#large-files).
+
+## Large files
+
+Git keeps every committed version of every file, so deleting a large file later does not remove it from history. Every clone downloads all of it, and media files barely compress against earlier versions, so each changed version adds close to a full copy. Whether to keep larger files is your team's decision. Design Studio has no built-in support for large media today; work through these options in order:
+
+1. **Keep the default.** A new studio blocks files over 750 KB. That fits images exported at the size they are shown, and keeps clones fast.
+2. **Raise the limit.** If your team's files are a little bigger, such as detailed images or short clips, raise `assetLimitKB` in Studio settings under General, or in `studio.config.json`. Every file under the new limit then goes into Git history as usual.
+3. **Use a tool built for large media.** For video, large raw images, or other heavy files, keep them out of Git history:
+   - [Git LFS](https://git-lfs.com/) stores a small pointer in Git and the file itself with your Git host. Track by pattern, such as `git lfs track "*.mp4"`, which writes the rule to `.gitattributes`; Asset Guard passes these files at any size. Everyone who clones, and every CI job and deployment that builds the studio, needs Git LFS installed and fetching files, or they get the pointer text instead of the media. Git hosts include a limited LFS quota for storage and downloads, and moving files back out of LFS later means rewriting history.
+   - External media hosting, such as a video platform, a CDN, or object storage, keeps the file out of the repository entirely. Prototypes reference it by URL.

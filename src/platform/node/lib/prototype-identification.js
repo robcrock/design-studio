@@ -1,5 +1,6 @@
-// Explicit identity assignment for directly authored prototype files. Normal
-// reads/builds never assign IDs, and an existing identity or owner is immutable.
+// Identity assignment for directly authored prototype files: explicit through pnpm studio identify, and automatic in
+// authoring tools (the dev server, the canvas CLI) through identifyAuthored. Reads, builds and checks never assign IDs,
+// and an existing identity or owner is immutable.
 import fs from 'node:fs';
 import path from 'node:path';
 import { readPersistedStudioConfig } from './persisted-studio-config.js';
@@ -115,6 +116,31 @@ export function applyPrototypeIdentification(root, types, plan, actor) {
     prototypeId: current.resources.find(resource => resource.kind === 'prototype').studioId,
     changed: current.changes.length,
   };
+}
+
+// The prototype folder (src/prototypes/<contributor>/<prototype>) a repository path is in, or null.
+export const prototypeFolderOf = file => /^src\/prototypes\/[^/]+\/[^/]+(?=\/)/.exec(file)?.[0] ?? null;
+
+// Files written outside the app (by an agent or an editor) arrive without a permanent identity. Authoring tools give
+// them one here, as the app does for the files it creates, so links and tools see them with no separate step. Only the
+// given folders that have missing identities are touched, with the same owner/Admin check as pnpm studio identify.
+// Returns one entry per folder it tried: { folder, changed } or { folder, error }.
+export function identifyAuthored(root, types, folders, resolveActor) {
+  const candidates = new Set(folders.filter(Boolean));
+  if (!candidates.size) return [];
+  const pending = new Set(auditResourceIdentities(root, types).missing.map(prototypeFolderOf));
+  const targets = [...candidates].filter(folder => pending.has(folder));
+  if (!targets.length) return [];
+  const actor = resolveActor();
+  if (!actor) return targets.map(folder => ({ folder, error: new Error('No contributor is set up on this machine.') }));
+  return targets.map(folder => {
+    try {
+      const plan = planPrototypeIdentification(root, types, folder, actor);
+      return { folder, changed: applyPrototypeIdentification(root, types, plan, actor).changed };
+    } catch (error) {
+      return { folder, error };
+    }
+  });
 }
 
 // ids is an optional path->ID allocation retained from an earlier preview.

@@ -22,11 +22,15 @@ function scoped(selector, themeClass, mode) {
       });
       const nodes = part.nodes;
       const index = nodes.findLastIndex(n => n.type === 'class' && (mode === 'module' || n.value === themeClass));
-      if (
-        index < 0 ||
-        nodes.slice(index + 1).some(n => n.type === 'combinator' && ![' ', '>'].includes(n.value.trim() || ' '))
-      )
-        valid = false;
+      // Sibling combinators stay inside the scope once a descendant or child step has entered it:
+      // `.theme .a + .b` is contained, while `.theme + .b` escapes.
+      let inside = false;
+      for (const n of nodes.slice(index + 1)) {
+        if (n.type !== 'combinator') continue;
+        if ([' ', '>'].includes(n.value.trim() || ' ')) inside = true;
+        else if (!inside) valid = false;
+      }
+      if (index < 0) valid = false;
     });
   }).processSync(selector);
   return valid;

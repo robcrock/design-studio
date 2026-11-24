@@ -5,7 +5,7 @@ Excalidraw text, shapes, and arrows. It's [Excalidraw](https://github.com/excali
 look, and its design comes from Design Studio's canvas. Agent contract: `src/platform/modules/canvas/skills/use-canvas/SKILL.md`.
 Human orientation: [Prototypes & systems](/documentation/manual/prototypes#what-belongs-in-a-prototype).
 
-Native Excalidraw tools are the authoring default, including text for screen annotations. The example sticky note in the Library demonstrates a reusable library asset; use it when wanted rather than as the standard annotation treatment.
+Native Excalidraw tools are the authoring default, including text for screen annotations. Sticky notes are Excalidraw's own `stickynote` element (N, or the toolbar): its text shrinks to fit, then the note grows. There is no Library; Canvas hides Excalidraw's.
 
 Trackpad gestures pan the canvas, including over linked frame headers; modifier-wheel gestures retain Excalidraw's zoom behavior. The canvas contains overscroll so horizontal panning does not fall through to browser history navigation. Frame headers still open their artifacts when clicked.
 
@@ -19,14 +19,18 @@ Canvas declares `systemUsage: 'independent'`. Its scene remains readable locally
 
 - **One file per canvas:** `<name>.excalidraw`, anywhere in a prototype. An Excalidraw scene as JSON.
   The name in the navigation comes from the file name.
-- **Source identity:** a declared top-level `studioId` survives browser and CLI saves. Creation assigns it explicitly; direct authoring uses `pnpm studio identify <prototype-folder> --yes`. Missing identity fails the build. See [Resource identity](../../context/resource-identity.md).
+- **Source identity:** a declared top-level `studioId` survives browser and CLI saves. Creation assigns it explicitly. A canvas written directly gets one from the dev server or the next `pnpm canvas` call, or from `pnpm studio identify <prototype-folder> --yes`. Missing identity fails the build. See [Resource identity](../../context/maintainers/resource-identity.md).
 - **Items are embeds.** A view, diagram, or document on a canvas is an Excalidraw `embeddable` element whose
   `link` is the artifact's address in the app (`/prototypes/<prototype-id>/artifacts/<artifact-id>`). The link resolves through
   the manifest (`src/platform/app/artifacts/artifactLinks.ts`) to a prototype and an artifact, and the artifact's file type
   decides how it looks: a type that declares the canvas surface in `capabilities.embeds` and provides an `Embed` (views and diagrams on canvases) shows live, any other
   type shows a card (`src/platform/app/artifacts/ArtifactCard.tsx`), and a link to nothing shows "Not found".
-- **Views are pictures.** A view is laid out at 1440 px wide and scaled down to the element's width,
-  cropped at the bottom. Resizing the element changes the crop. Nothing in it takes clicks.
+- **Views are pictures.** A view is laid out at a screen width and scaled down to the element's width,
+  cropped at the bottom. Each view element states its screen width in `customData.viewport`; the check
+  fails a view without one. The canvas writes its system's first screen (`screens` in system.ts) when a view is
+  placed, and the agent tools' `screen` sets another of its screens or any width, only when asked. New views are
+  a third of their screen width and 900 px of height, so views at different screens compare at one scale.
+  Resizing the element changes the crop, not the screen. Nothing in it takes clicks.
 - **Agents** use the tools in tools.ts, live in the open canvas or on the file (src/platform/modules/canvas/skills/use-canvas/SKILL.md). Tools select artifacts by source filename and store permanent links. CLI mutations require the owner or an Admin and an active prototype; read-only tools preserve the file.
 - **Dev:** edits save to the file through the same file layer as the Source view, and changes made to the
   file from outside (an agent) are taken in live. **Deployed:** the committed file, read-only.
@@ -57,9 +61,10 @@ Canvas declares `systemUsage: 'independent'`. Its scene remains readable locally
 | `elements.ts`, `slim.ts` | Building blocks for the tools (colors, text sizes, arrows), and the small stable stored form. Pure, shared with the command line |
 | `agent.ts` | The tools in the open canvas: `window.__studioCanvas`, dev only |
 | `cli.ts` | The same tools on the file, for agents with no browser: `pnpm canvas` |
-| `menu.tsx`, `shortcuts.ts`, `stickyNotes.ts`, `ControlTooltip.tsx`, `helpDialog.ts` | The trimmed Excalidraw UI: menu, ⌘. and N, sticky notes, fast tooltips, Help dialog |
+| `mermaid.ts` | Lays out Mermaid with Excalidraw's converter for the `mermaid` tool (with linkedom as the DOM in `cli.ts`) |
+| `menu.tsx`, `shortcuts.ts`, `ControlTooltip.tsx`, `helpDialog.ts` | The trimmed Excalidraw UI: menu and desktop layout, ⌘., fast tooltips, Help dialog |
 
-Excalidraw is patched (the link icon on embeds, and always using its desktop layout, since the app is often narrow beside other panels): `patches/README.md`. Its fonts load from
+Excalidraw is patched to hide the link icon on embeds (`patches/README.md`). `UIOptions.getFormFactor` in `menu.tsx` keeps its desktop layout, since the app is often narrow beside other panels. Its fonts load from
 Excalidraw's CDN.
 
 ### Remove it
@@ -74,7 +79,7 @@ Fitted, read-only canvases in Markdown use the same quiet opening surface, bound
 
 ### Preview lifetime
 
-Retained view and diagram embeds use the [shared artifact lifecycle contract](../../context/source.md#artifact-revision-and-preview-lifecycle). Offscreen hiding preserves mounted runtimes and updates within the existing admission/eviction policy; it does not pause them. Eviction, removal, or leaving disposes their listeners and pending work. Canvas scene saving retains its separate version and conflict model.
+Retained view and diagram embeds use the [shared artifact lifecycle contract](../../context/maintainers/source.md#artifact-revision-and-preview-lifecycle). Offscreen hiding preserves mounted runtimes and updates within the existing admission/eviction policy; it does not pause them. Mounted views are [still embeds](../view/README.md#still-embeds): each holds its motion once rendered, except the one selected item, which plays until it is deselected. Eviction, removal, or leaving disposes their listeners and pending work. Canvas scene saving retains its separate version and conflict model.
 
 ## Shared artifact host
 

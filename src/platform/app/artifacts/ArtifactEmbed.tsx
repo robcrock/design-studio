@@ -13,7 +13,7 @@ export default function ArtifactEmbed({ source, label = 'Artifact' }: { source: 
     return () => observer.disconnect();
   }, []);
   return (
-    <figure className='not-prose my-6 min-w-0' ref={container}>
+    <figure className='not-studio-prose my-6 min-w-0' ref={container}>
       {origin ? (
         <ArtifactHost
           request={{ reference: source, origin, surface: 'document' }}

@@ -73,6 +73,25 @@ export default defineFileType({
         problems.push(
           `it links to another prototype (${[...elsewhere].slice(0, 3).join(', ')}${elsewhere.size > 3 ? ', …' : ''}). A canvas shows only items from its own prototype: copy the view into this prototype, then link that copy.`,
         );
+      // A view shows one of its system's screens, so each view on a canvas says which: customData.viewport,
+      // the screen width in pixels. The canvas tools write it; it is never assumed.
+      const assigned = new Set(
+        (prototype.artifacts ?? []).filter(a => a.systemUsage === 'assigned' && a.studioId).map(a => a.studioId),
+      );
+      const unsized = (canvas.elements as { link?: unknown; customData?: { viewport?: unknown } }[]).filter(el => {
+        if (typeof el?.link !== 'string') return false;
+        const artifactId = parsePrototypeAddress(el.link.split(/[?#]/)[0])?.artifactId;
+        const viewport = el.customData?.viewport;
+        return (
+          artifactId &&
+          assigned.has(artifactId) &&
+          !(Number.isInteger(viewport) && (viewport as number) >= 200 && (viewport as number) <= 4096)
+        );
+      });
+      if (unsized.length)
+        problems.push(
+          `${unsized.length} view${unsized.length === 1 ? " doesn't" : "s don't"} say which screen ${unsized.length === 1 ? 'it is' : 'they are'} shown at. Give each view's element "customData": { "viewport": <screen width> }, a width from 200 to 4096 such as its system's first screen (system.ts screens), or set it with the canvas update tool's \`screen\`.`,
+        );
     }
     const v = canvas.studioVersion ?? 1;
     if (!Number.isInteger(v) || (v as number) < 1 || (v as number) > KNOWN_VERSION)

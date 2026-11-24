@@ -12,7 +12,7 @@ import { sourceArtifactPath } from '@/platform/app/artifacts/artifactLinks';
 
 const systemIdentities = Object.fromEntries(Object.entries(SYSTEM_SPECS).map(([key, spec]) => [key, spec.studioId!]));
 
-// Styling for Markdown comes from Tailwind Typography's `prose` classes (see Prose).
+// Styling for Markdown comes from Tailwind Typography's `studio-prose` classes (see Prose).
 // This map covers only what CSS can't: app links navigate without a reload, and
 // outside links open in a new tab. In a prototype document, a link like ./main or
 // ../lofi/main.tsx is relative to the document, so it keeps working if the prototype's

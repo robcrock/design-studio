@@ -28,4 +28,4 @@ Mermaid blocks include `accTitle` and `accDescr`; images follow [Assets](assets.
 
 ## Verify the result
 
-Update affected callers with behavior changes; keep capability instructions conditional. Check relevant links, anchors, metadata, and rendered content. For a skill, walk through a matching request and a similar request outside its scope. Automated checks validate structure; they do not establish clear prose or correct live agent behavior. Report actual verification and unresolved limits.
+Update affected callers with behavior changes; keep capability instructions conditional. Check links and anchors with `pnpm check:links`, and check metadata and rendered content. For a skill, walk through a matching request and a similar request outside its scope. Automated checks validate structure; they do not establish clear prose or correct live agent behavior. Report actual verification and unresolved limits.

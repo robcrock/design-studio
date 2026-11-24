@@ -47,8 +47,7 @@ export function sourceInputs(graph, entry) {
   const visit = module => {
     if (visited.has(module)) return;
     visited.add(module);
-    // Imported local assets without compiled evidence remain unverifiable, rather
-    // than silently disappearing from the dependency revision.
+    // Imported local assets are inputs too; the browser records their bytes as evidence.
     if (module.file && local(module.file)) files.add(module.file);
     if (visited.size > 4096) throw new Error('Preview dependency graph is too large to verify.');
     for (const child of module.importedModules ?? []) visit(child);
@@ -73,6 +72,14 @@ export default function artifactRevisions() {
         order: 'pre',
         handler(code, id) {
           const file = id.split('?')[0];
+          if (local(file) && !supported(file)) {
+            // An imported asset compiles to a URL, so its evidence is the file on disk. One too large
+            // or unsafe to read stays unrecorded, and so unverified, exactly as the server reports it.
+            try {
+              inputs.set(id, [pairOf(file)]);
+            } catch {}
+            return null;
+          }
           if (!supported(file) || /[?&](?:raw|url)(?:&|$)/.test(id)) return null;
           const extra = file.endsWith('.css') ? [...cssInputs(file, code)].filter(input => input !== file) : [];
           if (file === STYLES)

@@ -7,6 +7,7 @@ import type { IconSvgElement } from '@hugeicons/react';
 import type { AnyRoute, NavigateOptions } from '@tanstack/react-router';
 import { compatible, type ModuleSpec } from '@/platform/core/modules';
 import type { Artifact, Manifest, Prototype, PrototypeInfo } from '@/platform/app/data/types';
+import type { ArtifactAction, ArtifactActionContext } from '@/platform/app/data/fileTypeModule';
 import { MODULES } from '@/platform/app/data/modules';
 import { isEnabled } from '@/platform/app/data/config';
 
@@ -20,7 +21,16 @@ export type PaletteContext = {
 };
 
 // One entry a module adds to a prototype's "…" menu (on its card and in its navigation).
-export type PrototypeAction = { label: string; icon: IconSvgElement; onSelect: () => void; destructive?: boolean };
+// `display` marks one that changes how the open prototype shows rather than the prototype itself: it appears only in
+// the prototype's own navigation menu, beside "Hide other files", with its keyboard `shortcut` if it has one.
+export type PrototypeAction = {
+  label: string;
+  icon: IconSvgElement;
+  onSelect: () => void;
+  destructive?: boolean;
+  display?: boolean;
+  shortcut?: string;
+};
 
 export type ModuleApp = {
   // Local creation workflows do not appear on published viewing sites.
@@ -39,6 +49,10 @@ export type ModuleApp = {
   // whether you may change this prototype. It's a hook: the shell calls every module's, in the same order each
   // time, since the modules that are on don't change while the app runs.
   useActions?: (proto: PrototypeInfo, can: { editable: boolean }) => PrototypeAction[];
+  // Entries it adds to an item's menu in the file tree, for file types it doesn't own (a type adds its own in
+  // open.tsx). It returns the ones that fit this item, with IDs that start with the module's ID; the menu
+  // checks each one's availability again before running it (src/platform/context/file-types.md).
+  artifactActions?: (context: ArtifactActionContext & { manifest: Manifest }) => readonly ArtifactAction[];
   // What the module shows on the app's front page: a block of its own, usually a few of its items with a link to
   // all of them (draw it with HomeSection, src/platform/app/items/HomeSection.tsx). It decides what is useful to show and
   // may draw nothing. Leave it out for a module whose page the rail already reaches and has nothing to add.
@@ -85,3 +99,9 @@ export const sectionPath = (spec: ModuleSpec) => `/${spec.section!.key}`;
 // Whether a pathname is inside the module's section: /examples and /examples/sample.
 export const inSection = (spec: ModuleSpec, pathname: string) =>
   Boolean(spec.section) && (pathname === sectionPath(spec) || pathname.startsWith(`${sectionPath(spec)}/`));
+
+// What the enabled modules add to an item's menu (ModuleApp.artifactActions), keeping each to its own IDs.
+export const contributedArtifactActions = (context: ArtifactActionContext, manifest: Manifest) =>
+  moduleApps.flatMap(({ spec, app }) =>
+    (app.artifactActions?.({ ...context, manifest }) ?? []).filter(action => action.id.startsWith(`${spec.id}.`)),
+  );

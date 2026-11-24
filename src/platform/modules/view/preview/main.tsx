@@ -25,6 +25,7 @@ import {
   type PreviewMessage,
 } from './protocol';
 import PreviewSurface, { type LoadedView } from './PreviewSurface';
+import { installStillness } from './still';
 import {
   loadManifest,
   setManifest,
@@ -36,8 +37,11 @@ import {
 import type { Manifest } from '@/platform/app/data/types';
 import { addressOf } from '@/platform/core/roots';
 import { previewShortcut } from '@/platform/app/shell/artifactShortcuts';
+import { appPage, messageOrigin, postTarget } from '@/platform/app/data/downloaded';
 
 let lifecycleSequence = 0; // Monotonic for this child document, including renderer remounts.
+// A still embed holds its motion this long after it renders, so entrance animations finish first.
+const SETTLE_MS = 1000;
 type Status = Extract<PreviewMessage, { kind: 'status' }>;
 const RuntimeContext = createContext<{
   config: Config;
@@ -89,7 +93,7 @@ function RuntimeView() {
             sequence: ++lifecycleSequence,
             lifecycle,
           },
-          location.origin,
+          postTarget(),
         );
     });
     lifecycle.current = controller;
@@ -166,7 +170,7 @@ function RuntimeView() {
 }
 
 async function targetFromHref(href: string): Promise<Config['target'] | null> {
-  const url = new URL(href, location.origin);
+  const url = new URL(href, location.href);
   if (url.searchParams.get('mode') === 'source') return null;
   const base = import.meta.env.BASE_URL.replace(/\/$/, '');
   const pathname = url.pathname.slice(base.length);
@@ -189,6 +193,14 @@ async function targetFromHref(href: string): Promise<Config['target'] | null> {
   return null;
 }
 
+// What the document shows, for code running in it: its theme, and (as data-preview-surface and data-preview-target)
+// whether it is a page or an embed and which view, so a module library can tell where it is (dialkit/README.md).
+function describe(config: Config) {
+  document.documentElement.classList.toggle('dark', config.dark);
+  document.documentElement.dataset.previewSurface = config.surface;
+  document.documentElement.dataset.previewTarget = JSON.stringify(config.target);
+}
+
 function start() {
   const bootstrap = readBootstrap(location.search);
   const hosted = window.parent !== window;
@@ -196,11 +208,24 @@ function start() {
   document.documentElement.dataset.previewRuntime = runtime;
   // Native links (including modified clicks) and relative assets see the artifact address.
   const addressBase = document.createElement('base');
-  addressBase.href = new URL(bootstrap.config.href, location.origin).href;
+  addressBase.href = new URL(bootstrap.config.href, location.href).href;
   document.head.prepend(addressBase);
   let current = bootstrap.config;
   let request = 0;
   let lastRender = 0;
+  // Still embeds (README.md#still-embeds). Native timers, taken before stillness wraps them, keep the
+  // runtime's own scheduling running while the view's motion is held.
+  const later = window.setTimeout.bind(window) as (handler: () => void, ms: number) => number;
+  const cancel = window.clearTimeout.bind(window);
+  const stillness = current.surface === 'embed' ? installStillness(window) : null;
+  let rendered = false;
+  let settling: number | undefined | undefined;
+  const updateMotion = () => {
+    cancel(settling);
+    if (!stillness) return;
+    if (!current.still || !rendered) stillness.release();
+    else settling = later(stillness.hold, SETTLE_MS);
+  };
   const history = createMemoryHistory({ initialEntries: [current.href] });
   const rootRoute = createRootRoute({ component: Outlet });
   const viewRoute = createRoute({ getParentRoute: () => rootRoute, path: '$', component: RuntimeView });
@@ -224,7 +249,7 @@ function start() {
       | { kind: 'navigate'; href: string; replace: boolean }
       | { kind: 'shortcut'; action: 'source' | 'grid' | 'palette' | 'navigation' },
   ) => {
-    if (hosted) window.parent.postMessage({ ...envelope(), ...event }, location.origin);
+    if (hosted) window.parent.postMessage({ ...envelope(), ...event }, postTarget());
   };
   function Runtime() {
     const [config, setConfig] = useState(current);
@@ -233,10 +258,12 @@ function start() {
     const status = useCallback(
       (state: Status['state'], render: number, detail = '') => {
         lastRender = Math.max(lastRender, render);
+        rendered = state === 'ready';
+        updateMotion();
         if (hosted)
           window.parent.postMessage(
             { ...envelope(), identity, kind: 'status', state, render: lastRender, detail: detail.slice(0, 4096) },
-            location.origin,
+            postTarget(),
           );
       },
       [identity],
@@ -244,8 +271,9 @@ function start() {
     useEffect(() => {
       const apply = (next: Config) => {
         current = next;
-        addressBase.href = new URL(next.href, location.origin).href;
-        document.documentElement.classList.toggle('dark', next.dark);
+        addressBase.href = new URL(next.href, location.href).href;
+        describe(next);
+        updateMotion();
         setConfig(next);
         if (history.location.href !== next.href) {
           void router.navigate({ to: routerHref(next.href, import.meta.env.BASE_URL) as never, replace: true });
@@ -256,7 +284,7 @@ function start() {
           !acceptsHost(
             event,
             window.parent,
-            location.origin,
+            messageOrigin(),
             bootstrap.session,
             runtime,
             bootstrap.config.surface,
@@ -281,13 +309,11 @@ function start() {
           return;
         }
         if (prototypeScopeOf(target) !== prototypeScopeOf(current.target)) {
-          window.location.assign(
-            previewUrl({ ...current, target, href }, crypto.randomUUID(), import.meta.env.BASE_URL),
-          );
+          window.location.assign(previewUrl({ ...current, target, href }, crypto.randomUUID(), appPage()));
           return;
         }
         apply({ ...current, target, href });
-        const url = previewUrl(current, bootstrap.session, import.meta.env.BASE_URL);
+        const url = previewUrl(current, bootstrap.session, appPage());
         if (replace) window.history.replaceState(null, '', url);
         else window.history.pushState(null, '', url);
       };
@@ -324,7 +350,7 @@ function start() {
               import.meta.env.BASE_URL,
             ) as never,
           });
-        } else if (url.origin === location.origin && url.pathname.startsWith(import.meta.env.BASE_URL)) {
+        } else if (url.origin === messageOrigin() && url.pathname.startsWith(import.meta.env.BASE_URL)) {
           // Native anchors and TanStack links both stay inside the Studio navigation policy.
           event.preventDefault();
           void router.navigate({
@@ -378,15 +404,22 @@ function start() {
         }
       };
       window.addEventListener('popstate', onPopState);
-      const reload = () => setRefresh(value => value + 1);
+      // A change releases held motion first, so the update renders and settles before holding again.
+      const reload = () => {
+        rendered = false;
+        updateMotion();
+        setRefresh(value => value + 1);
+      };
       const manifest = ({ manifest }: { manifest: Manifest }) => {
         setManifest(manifest);
         reload();
       };
-      let hmrTimer: ReturnType<typeof setTimeout> | undefined;
+      let hmrTimer: number | undefined | undefined;
       const hmrComplete = () => {
-        clearTimeout(hmrTimer);
-        hmrTimer = setTimeout(reload, 40);
+        cancel(hmrTimer);
+        rendered = false;
+        updateMotion();
+        hmrTimer = later(reload, 40);
       };
       const reportError = (detail: string) => {
         send({ kind: 'status', state: 'error', render: lastRender, detail: detail.slice(0, 4096) });
@@ -409,7 +442,8 @@ function start() {
       apply(current);
       send({ kind: 'hello' });
       return () => {
-        clearTimeout(hmrTimer);
+        cancel(hmrTimer);
+        cancel(settling);
         unsubscribe();
         window.removeEventListener('popstate', onPopState);
         window.removeEventListener('message', onMessage);
@@ -430,7 +464,7 @@ function start() {
       </RuntimeContext.Provider>
     );
   }
-  document.documentElement.classList.toggle('dark', current.dark);
+  describe(current);
   const mount = document.getElementById('root')!;
   mount.style.cssText = 'height:100vh;display:flex;flex-direction:column;overflow:hidden';
   if (current.surface === 'embed') mount.inert = true;

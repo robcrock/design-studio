@@ -27,7 +27,7 @@ While an agent changes files, the last working preview may remain visible. **Out
 
 Ordinary edits preserve interaction state when possible. Opening another artifact or reloading can reset it. Live previews retained offscreen on a canvas continue updating; previews released to save memory start fresh when you return.
 
-Canvas and document previews are pictures of the working view. Open the original to interact with it.
+Canvas and document previews are pictures of the working view. Open the original to interact with it. On a canvas, views hold still once loaded so large canvases stay smooth; select one view to watch its motion.
 
 Preview separation contains styles and overlays. It does not make untrusted prototype code safe to run.
 
@@ -95,9 +95,11 @@ Imports, relative document links, and assets still depend on file locations. Stu
 
 **Documents** use Markdown and can preview artifacts from the same prototype. Mermaid diagrams can also appear inside a document without the standalone Diagrams module. Documents and diagrams use Studio's reading style.
 
-**Canvases** use Excalidraw. Use the native toolbar tools to draw, connect, and annotate; press **T** for text. The Library offers optional reusable assets, including an example sticky note. Drag an artifact from navigation onto the canvas, or copy its link and paste over the canvas.
+**Diagrams** open fitted to the page. Pinch to zoom, scroll or drag to pan, or use the zoom controls in the lower left, as on a canvas. **Fit diagram** returns to the fitted view. A canvas preview of that diagram stays fitted, because the canvas has its own zoom.
 
-View and diagram previews follow their source. Documents and other canvases appear as link cards. Open the original to interact or edit. Canvas annotations do not automatically change screens.
+**Canvases** use Excalidraw. Use the native toolbar tools to draw, connect, and annotate; press **T** for text and **N** for a sticky note. Drag an artifact from navigation onto the canvas, or copy its link and paste over the canvas.
+
+View and diagram previews follow their source. A view shows its design system's main screen width, such as desktop; ask your agent to show it at another screen, like Phone, or the same view at several screens side by side. Resizing a view on the canvas changes how much of it shows. Documents and other canvases appear as link cards. Open the original to interact or edit. Canvas annotations do not automatically change screens.
 
 Canvases embed artifacts from their own prototype and cannot store images. Changes save automatically locally. Other contributors' and published canvases are read-only. Importing **Mermaid to Excalidraw** creates independent shapes, not a synchronized diagram.
 
@@ -106,6 +108,12 @@ Canvases embed artifacts from their own prototype and cannot store images. Chang
 Right-click a view and choose **Make lo-fi** for grayscale and handwritten type. **Make hi-fi** restores normal appearance.
 
 To try another system, choose **Duplicate** and select the target system. This creates a rebuild copy and preserves the original. Use **Copy rebuild instructions** in the copy's sidebar and give them to your agent. The copy keeps its current system until the agent migrates and verifies it; duplication does not convert code automatically.
+
+## How do I share a prototype without publishing?
+
+Choose **Download** in the prototype's **…** menu. Studio saves the whole prototype as one HTML file: its views, documents, diagrams and canvases, with its navigation, and without the rest of the studio. Anyone can open it in a browser, without Studio or a server. Send it to a teammate or client to click through and review.
+
+It takes a few seconds and is usually around 10 MB. Files a view loads while it runs, such as data from `public/`, aren't included, so check the file before you send it.
 
 ## What do archive and delete do?
 

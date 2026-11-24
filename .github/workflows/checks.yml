@@ -75,6 +75,7 @@ jobs:
           key: pnpm-12-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('pnpm-lock.yaml', 'pnpm-workspace.yaml', 'patches/**') }}
       - run: pnpm install --frozen-lockfile
       - run: pnpm studio sync --check
+      - run: pnpm check:links
       - run: pnpm format:check
       - name: Run regressions
         run: |

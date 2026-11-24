@@ -9,4 +9,4 @@ Update the canonical source and affected links; subtract repetition of code, typ
 
 After skill or routing changes, run `pnpm studio sync`; preserve team-authored adapters. Root `AGENTS.md` is generated from `src/platform/AGENTS.md`, module routing, and `AGENTS.team.md`. Module routes use module-relative `instructions` paths; system skills apply to assigned prototypes or explicit system maintenance.
 
-Verify affected links, anchors, metadata, and rendered content. For a skill, walk through matching and out-of-scope requests; distinguish walkthroughs from live agent testing. Follow [working context](../../context/working-in-studio.md) for checks and saving, and report unresolved limits. A focused change does not require a broader guidance audit.
+Verify affected links and anchors with `pnpm check:links`, then metadata and rendered content. For a skill, walk through matching and out-of-scope requests; distinguish walkthroughs from live agent testing. Follow the Working in Studio section of `AGENTS.md` for checks and saving, and report unresolved limits. A focused change does not require a broader guidance audit.

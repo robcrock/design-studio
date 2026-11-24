@@ -4,5 +4,14 @@ import { prototypeScopeOf } from './preview/protocol';
 import type { loadPreview } from './preview/target';
 
 export default function ViewFrame({ target, href, title }: ReturnType<typeof loadPreview>) {
-  return <PreviewHost key={prototypeScopeOf(target)} target={target} href={href} title={title} surface='page' />;
+  return (
+    <PreviewHost
+      key={prototypeScopeOf(target)}
+      target={target}
+      href={href}
+      title={title}
+      surface='page'
+      still={false}
+    />
+  );
 }

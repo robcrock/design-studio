@@ -1,0 +1,33 @@
+name: Feature proposal
+description: Propose an improvement to Design Studio, with or without an implementation.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What gets in the way today, and who runs into it?
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: What should change? Note anything that stays the same, such as surfaces that are unaffected.
+    validations:
+      required: true
+  - type: input
+    id: branch
+    attributes:
+      label: Branch or comparison link
+      description: If you built it, link the branch or a compare view.
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Before and after
+      description: Screenshots or a short video, especially for interactions.
+  - type: textarea
+    id: checks
+    attributes:
+      label: How to check it
+      description: Steps or a checklist a maintainer can follow, and the checks you ran.

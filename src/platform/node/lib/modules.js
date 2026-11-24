@@ -8,6 +8,7 @@ import { readPersistedStudioConfig } from './persisted-studio-config.js';
 import { isEnabled } from '../../core/config.ts';
 import { compatible } from '../../core/modules/index.ts';
 import { MODULES, MODULE_DIRS } from './module-catalog.js';
+import { offLibraryOf } from './module-folders.js';
 export { MODULES, MODULE_DIRS, SECTION_KEYS, declarationProblems } from './module-catalog.js';
 import { setSections } from '../../core/roots.ts';
 
@@ -17,6 +18,12 @@ const { config: CONFIG } = readPersistedStudioConfig(ROOT);
 // The modules studio.config.json explicitly enables and that work with this platform (`requires`). A module that is off keeps its files but is skipped everywhere.
 export const ENABLED_MODULES = Object.values(MODULES).filter(m => m && isEnabled(CONFIG, m.id) && compatible(m));
 export { CONFIG, isEnabled };
+
+// Modules whose public library @module/<id> resolves: enabled ones to lib/index, and ones that are off to their
+// lib/off entry when they have one (`off: true`).
+export const LIBRARY_MODULES = Object.values(MODULES).flatMap(m =>
+  !m?.lib ? [] : ENABLED_MODULES.includes(m) ? [m] : offLibraryOf(ROOT, m.id) ? [{ ...m, off: true }] : [],
+);
 
 // App page addresses (/examples, /documentation, ...), so they can't be a contributor's folder.
 

@@ -32,7 +32,7 @@ import ViewError from '@/platform/app/files/FileError';
 
 // The page's Markdown headings match the page's own sections (18px, under the 26px title), not the
 // 21px h2 the small prose size gives.
-const PAGE_PROSE = 'prose-h3:text-base';
+const PAGE_PROSE = 'studio-prose-h3:text-base';
 const componentHeadings = {
   h2: ({ className = '', style, ...props }: React.ComponentProps<'h2'>) => (
     <h2
@@ -167,7 +167,7 @@ function webLink(url: string | null) {
 
 // `origin`
 // is where the system's components come from: 'shadcn' links the page to that component's shadcn/ui
-// docs, unless its frontmatter gives a link of its own.
+// docs when the shadcn library entry lists the component, unless its frontmatter gives a link of its own.
 export function ComponentDocPage({
   system,
   sys,
@@ -185,9 +185,12 @@ export function ComponentDocPage({
   const errors = loaded.errors;
   const [retry, setRetry] = useState(0);
   const router = useRouter();
-  const libraries = (useManifest().systems[system]?.libraries ?? []).filter(
-    library => library.id === origin || library.components?.includes(component.slug),
+  // Credit only what this component declares: a library lists the components it supplies, so an adapted
+  // system never credits its origin for components that came from somewhere else.
+  const libraries = (useManifest().systems[system]?.libraries ?? []).filter(library =>
+    library.components?.includes(component.slug),
   );
+  const fromOrigin = libraries.some(library => library.id === origin);
   const version = useDocsVersion();
   const previousVersion = useRef(version);
   useEffect(() => {
@@ -198,8 +201,10 @@ export function ComponentDocPage({
   }, [version, router]);
 
   const stem = (source ?? component.name).replace(/^.*\//, '').replace(/\.[jt]sx$/, '');
-  const docsLink = webLink(component.docsUrl) ?? webLink(origin === 'shadcn' && source ? shadcnDocsUrl(stem) : null);
+  const docsLink =
+    webLink(component.docsUrl) ?? webLink(origin === 'shadcn' && fromOrigin && source ? shadcnDocsUrl(stem) : null);
   const filePath = source ?? doc ?? examples;
+  const credited = libraries.length > 0 || Boolean(component.sourceNote) || Boolean(docsLink);
   const propCount = loaded.props?.reduce((total, item) => total + item.props.length, 0) ?? 0;
   const Doc = loaded.doc;
   return (
@@ -289,39 +294,44 @@ export function ComponentDocPage({
       {filePath && (
         <Section title='Source'>
           <div className='flex items-start gap-3 rounded-lg border border-border p-4'>
-            <HugeiconsIcon
-              icon={LibraryIcon}
-              aria-hidden='true'
-              className='mt-0.5 size-4 shrink-0 text-muted-foreground'
-            />
+            {/* The library icon belongs to a credit; a component from the team's own code shows only its file. */}
+            {credited && (
+              <HugeiconsIcon
+                icon={LibraryIcon}
+                aria-hidden='true'
+                className='mt-0.5 size-4 shrink-0 text-muted-foreground'
+              />
+            )}
             <div className='flex min-w-0 flex-1 flex-wrap items-center gap-x-6 gap-y-3'>
-              <div className='min-w-0 flex-1 basis-56'>
-                {libraries.length > 0 && (
-                  <div className='flex flex-wrap gap-x-4 gap-y-2 text-sm font-medium'>
-                    {libraries.map(library => (
-                      <Link
-                        key={library.id}
-                        to={`${systemPath(system)}/libraries` as never}
-                        hash={library.id}
-                        className='inline-flex items-center gap-1 hover:underline'
-                        aria-label={`${library.label} in Libraries`}
-                      >
-                        {library.label}
-                        <HugeiconsIcon
-                          icon={ArrowRight01Icon}
-                          aria-hidden='true'
-                          className='size-3.5 text-muted-foreground'
-                        />
-                      </Link>
-                    ))}
-                  </div>
-                )}
-                {component.sourceNote && (
-                  <p className={`${libraries.length ? 'mt-1 ' : ''}text-sm leading-6 text-muted-foreground`}>
-                    {component.sourceNote}
-                  </p>
-                )}
-              </div>
+              {credited && (
+                <div className='min-w-0 flex-1 basis-56'>
+                  {libraries.length > 0 && (
+                    <div className='flex flex-wrap gap-x-4 gap-y-2 text-sm font-medium'>
+                      {libraries.map(library => (
+                        <Link
+                          key={library.id}
+                          to={`${systemPath(system)}/libraries` as never}
+                          hash={library.id}
+                          className='inline-flex items-center gap-1 hover:underline'
+                          aria-label={`${library.label} in Libraries`}
+                        >
+                          {library.label}
+                          <HugeiconsIcon
+                            icon={ArrowRight01Icon}
+                            aria-hidden='true'
+                            className='size-3.5 text-muted-foreground'
+                          />
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                  {component.sourceNote && (
+                    <p className={`${libraries.length ? 'mt-1 ' : ''}text-sm leading-6 text-muted-foreground`}>
+                      {component.sourceNote}
+                    </p>
+                  )}
+                </div>
+              )}
               {docsLink && (
                 <a
                   href={docsLink.href}

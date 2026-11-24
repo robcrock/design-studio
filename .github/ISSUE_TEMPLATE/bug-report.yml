@@ -1,0 +1,35 @@
+name: Bug report
+description: Report something in Design Studio that doesn't work as described.
+labels: [bug]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happens
+      description: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Numbered steps from a fresh `pnpm dev`, or the command that fails.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      description: The Design Studio release or `main` commit you're on.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Screenshots or logs
+      description: Optional. A screenshot, short video, or error output.
+  - type: textarea
+    id: fix
+    attributes:
+      label: Workaround or fix
+      description: Optional. Anything you tried, or a branch with a fix.

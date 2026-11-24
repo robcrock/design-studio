@@ -13,11 +13,12 @@ import { artifactLabel } from '@/platform/app/data/manifest';
 import type { Artifact, Manifest, Prototype } from '@/platform/app/data/types';
 import { ITEM_CARD_HEIGHT } from '@/platform/app/artifacts/ArtifactCard';
 import { appPathOf } from '@/platform/app/artifacts/artifactLinks';
+import { screenBox } from './tools';
 
 import { EMBED_HEADER_HEIGHT as HEADER_HEIGHT } from '@/platform/app/artifacts/EmbedFrame';
 const BORDER = 2; // 1px each side
 const DEFAULT_WIDTH = 480;
-const DEFAULT_BODY_HEIGHT = Math.round((DEFAULT_WIDTH * 900) / 1440); // a 1440 x 900 screen, scaled
+const DEFAULT_BODY_HEIGHT = 300;
 
 // Excalidraw's `validateEmbeddable`: only links into this app are embeds. Anything else (a
 // video, a web page) isn't, so a canvas never loads another site.
@@ -39,11 +40,22 @@ const embedOf = (manifest: Manifest, link: string | null, current: Prototype) =>
   return result.state === 'resolved' && result.preview.available;
 };
 
-// The size of a new embed: a preview is a screen, a card is a compact row.
-function defaultSize(manifest: Manifest, link: string | null, current: Prototype) {
+// A new embed: a view is its default screen, scaled, and records that screen's width (customData.viewport); another
+// preview is a desktop-sized box, and a card is a compact row.
+function defaultPlacement(manifest: Manifest, link: string | null, current: Prototype) {
+  const result = inspect(manifest, link, current);
+  const preview = result.state === 'resolved' && result.preview.available;
+  const screen = result.state === 'resolved' ? result.screens?.[0] : undefined;
+  if (screen)
+    return {
+      size: screenBox(screen),
+      viewport: screen.width,
+    };
   return {
-    width: DEFAULT_WIDTH,
-    height: embedOf(manifest, link, current) ? HEADER_HEIGHT + BORDER + DEFAULT_BODY_HEIGHT : ITEM_CARD_HEIGHT,
+    size: {
+      width: DEFAULT_WIDTH,
+      height: preview ? HEADER_HEIGHT + BORDER + DEFAULT_BODY_HEIGHT : ITEM_CARD_HEIGHT,
+    },
   };
 }
 
@@ -71,14 +83,20 @@ export function normalizeEmbeds(
   api.updateScene({
     elements: api.getSceneElementsIncludingDeleted().map(el => {
       if (!ids.has(el.id)) return el;
-      const size = defaultSize(manifest, el.type === 'embeddable' ? el.link : null, current);
-      const placed = el.customData?.frame ? {} : { ...size, x: el.x - size.width / 2, y: el.y - size.height / 2 };
+      const fresh = !el.customData?.frame;
+      const { size, viewport } = defaultPlacement(manifest, el.type === 'embeddable' ? el.link : null, current);
+      const placed = fresh ? { ...size, x: el.x - size.width / 2, y: el.y - size.height / 2 } : {};
       // hideLinkIcon is read by our Excalidraw patch (patches/README.md).
       return newElementWith(el, {
         ...placed,
         roundness: null,
         strokeColor: 'transparent',
-        customData: { ...el.customData, frame: true, hideLinkIcon: true },
+        customData: {
+          ...el.customData,
+          frame: true,
+          hideLinkIcon: true,
+          ...(fresh && viewport !== undefined && { viewport }),
+        },
       });
     }),
     captureUpdate: CaptureUpdateAction.NEVER,
@@ -141,9 +159,11 @@ type ItemProps = {
   overview: boolean;
   // Has been near the viewport, so its preview is live. Before that it's a sized placeholder.
   mounted: boolean;
+  // The one selected item plays its motion; every other preview holds still once rendered.
+  playing: boolean;
 };
 
-function CanvasItemInner({ element, manifest, current, item, offscreen, overview, mounted }: ItemProps) {
+function CanvasItemInner({ element, manifest, current, item, offscreen, overview, mounted, playing }: ItemProps) {
   const link = element.type === 'embeddable' ? element.link : null;
   const resolution = inspect(manifest, link, current);
   return (
@@ -154,9 +174,11 @@ function CanvasItemInner({ element, manifest, current, item, offscreen, overview
         className='h-full w-full'
         width={element.width - BORDER}
         height={element.height - HEADER_HEIGHT - BORDER}
+        viewport={typeof element.customData?.viewport === 'number' ? element.customData.viewport : undefined}
         interaction='inert'
         mounted={mounted}
         hidden={offscreen || overview}
+        still={!playing}
       >
         {overview && !offscreen && (
           <div className='canvas-overview'>
@@ -181,5 +203,12 @@ export const CanvasItem = memo(
     a.element.version === b.element.version &&
     a.offscreen === b.offscreen &&
     a.overview === b.overview &&
-    a.mounted === b.mounted,
+    a.mounted === b.mounted &&
+    a.playing === b.playing,
 );
+
+// The item that plays its motion: the only selected element.
+export function playingId(appState: AppState) {
+  const ids = Object.keys(appState.selectedElementIds);
+  return ids.length === 1 ? ids[0] : null;
+}

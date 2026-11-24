@@ -12,7 +12,9 @@ import {
   resourceId,
   parsePrototypeAddress,
 } from '../../core/resourceIdentity.ts';
-import { prototypeArtifactHref } from '../../modules/prototypes/lib/index.ts';
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { prototypeArtifactHref, PrototypeNavigationProvider, Link } from '../../modules/prototypes/lib/index.ts';
 
 const parent = resourceId('0123456789abcdef'),
   child = resourceId('abcdefghjkmnpqrs'),
@@ -38,6 +40,18 @@ test('prototype runtime navigation resolves source paths, preserves selection, a
   assert.equal(prototypeArtifactHref(inventory, 'app/main?mode=source#frame'), from + '?mode=source#frame');
   assert.equal(prototypeArtifactHref(inventory, 'app/main.tsx'), from);
   assert.throws(() => prototypeArtifactHref(inventory, 'outside/main'), /No identified artifact/);
+});
+
+test('an unresolvable Link renders inert in place and names its path instead of failing the view', t => {
+  const errors = t.mock.method(console, 'error', () => {});
+  const inventory = { studioId: parent, artifacts: [] };
+  const html = renderToStaticMarkup(
+    createElement(PrototypeNavigationProvider, { value: inventory }, createElement(Link, { to: 'gone/page' }, 'Gone')),
+  );
+  assert.match(html, /data-studio-broken-link="gone\/page"/);
+  assert.match(html, />Gone<\/a>/);
+  assert.doesNotMatch(html, /href=/);
+  assert.match(errors.mock.calls[0].arguments[0], /Link to "gone\/page": No identified artifact/);
 });
 
 test('browser reference migration preserves imports, external links, Markdown fences and scene identity', () => {

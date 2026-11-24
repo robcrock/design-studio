@@ -39,6 +39,7 @@
   "include": ["src"],
   "exclude": [
     "src/**/*.test.ts",
+    "src/**/*.test.js",
     "src/platform/node/build",
     "src/platform/node/check",
     "src/platform/node/cli",

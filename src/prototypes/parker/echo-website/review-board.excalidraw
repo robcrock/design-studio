@@ -1,0 +1,168 @@
+{
+  "type": "excalidraw",
+  "version": 2,
+  "studioVersion": 1,
+  "studioId": "sr7kwryqs2ft7rbt",
+  "elements": [
+    {
+      "autoResize": true,
+      "fontFamily": 6,
+      "fontSize": 28,
+      "height": 35,
+      "id": "mwunjqusy6itln",
+      "lineHeight": 1.25,
+      "originalText": "Echo website",
+      "seed": 1379969386,
+      "text": "Echo website",
+      "textAlign": "left",
+      "type": "text",
+      "version": 1,
+      "versionNonce": 478124935,
+      "verticalAlign": "top",
+      "width": 175.3,
+      "x": 0,
+      "y": -160
+    },
+    {
+      "autoResize": false,
+      "fontFamily": 6,
+      "fontSize": 20,
+      "height": 75,
+      "id": "mwunjqutszxfm5",
+      "lineHeight": 1.25,
+      "originalText": "Home is the final page. The light hero is one alternative, kept to show how a team compares iterations.",
+      "seed": 87134553,
+      "text": "Home is the final page. The light hero is one\nalternative, kept to show how a team compares\niterations.",
+      "textAlign": "left",
+      "type": "text",
+      "version": 1,
+      "versionNonce": 1093524471,
+      "verticalAlign": "top",
+      "width": 480,
+      "x": 0,
+      "y": -110
+    },
+    {
+      "customData": {
+        "frame": true,
+        "hideLinkIcon": true
+      },
+      "height": 88,
+      "id": "mwunjquuwq4m77",
+      "link": "/prototypes/2h7mkxzppqfjv1xv/artifacts/kdxn8cva5w5cfxnk",
+      "seed": 891522362,
+      "strokeColor": "transparent",
+      "type": "embeddable",
+      "version": 1,
+      "versionNonce": 1574677082,
+      "width": 480,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "autoResize": false,
+      "fontFamily": 6,
+      "fontSize": 20,
+      "height": 175,
+      "id": "mwunjquu4tibcj",
+      "lineHeight": 1.25,
+      "originalText": "Page outline\n\n1. Hero: promise, two actions, the inbox\n2. Product: bento, led by the account card\n3. Customers: one quote\n4. How it works: three steps\n5. Closing call to action",
+      "seed": 1228990941,
+      "text": "Page outline\n\n1. Hero: promise, two actions, the inbox\n2. Product: bento, led by the account card\n3. Customers: one quote\n4. How it works: three steps\n5. Closing call to action",
+      "textAlign": "left",
+      "type": "text",
+      "version": 1,
+      "versionNonce": 921967141,
+      "verticalAlign": "top",
+      "width": 480,
+      "x": 0,
+      "y": 112
+    },
+    {
+      "customData": {
+        "frame": true,
+        "hideLinkIcon": true,
+        "viewport": 1440
+      },
+      "frameId": "mwunjquud1v5gd",
+      "height": 1190,
+      "id": "mwunjquuskov8y",
+      "link": "/prototypes/2h7mkxzppqfjv1xv/artifacts/1hz1pr0jff6c71bh",
+      "seed": 264767060,
+      "strokeColor": "transparent",
+      "type": "embeddable",
+      "version": 6,
+      "versionNonce": 2012509364,
+      "width": 480,
+      "x": 640,
+      "y": 0
+    },
+    {
+      "customData": {
+        "frame": true,
+        "hideLinkIcon": true,
+        "viewport": 390
+      },
+      "frameId": "mwunjquud1v5gd",
+      "height": 1307,
+      "id": "mwunjquug691wt",
+      "link": "/prototypes/2h7mkxzppqfjv1xv/artifacts/1hz1pr0jff6c71bh",
+      "seed": 63083127,
+      "strokeColor": "transparent",
+      "type": "embeddable",
+      "version": 6,
+      "versionNonce": 226758693,
+      "width": 130,
+      "x": 1200,
+      "y": 0
+    },
+    {
+      "height": 1427,
+      "id": "mwunjquud1v5gd",
+      "name": "Home: desktop and phone",
+      "seed": 2042396106,
+      "type": "frame",
+      "version": 5,
+      "versionNonce": 1282914083,
+      "width": 810,
+      "x": 580,
+      "y": -60
+    },
+    {
+      "customData": {
+        "frame": true,
+        "hideLinkIcon": true,
+        "viewport": 1440
+      },
+      "frameId": "mwunjquvl11j30",
+      "height": 1248,
+      "id": "mwunjquvsy90k5",
+      "link": "/prototypes/2h7mkxzppqfjv1xv/artifacts/nkgtsng2ctmmm0fe",
+      "seed": 641225115,
+      "strokeColor": "transparent",
+      "type": "embeddable",
+      "version": 6,
+      "versionNonce": 1973417862,
+      "width": 480,
+      "x": 1470,
+      "y": 0
+    },
+    {
+      "height": 1368,
+      "id": "mwunjquvl11j30",
+      "name": "Alternative: light hero",
+      "seed": 66603600,
+      "type": "frame",
+      "version": 5,
+      "versionNonce": 1137254607,
+      "width": 600,
+      "x": 1410,
+      "y": -60
+    }
+  ],
+  "appState": {
+    "viewBackgroundColor": "#ffffff",
+    "gridSize": 20
+  },
+  "files": {}
+}

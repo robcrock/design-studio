@@ -43,7 +43,9 @@ export function scopePolicy({ root, systems, modules, prototypeDirs = [] }) {
   };
   const runtimeSystem = file => entries.find(s => inside(file, s.dir) && !systemDocumentation(file, s.dir));
   const publicLibrary = (source, target) =>
-    libraries.find(m => source === `@module/${m.id}` && /^index\.(?:[cm]?[jt]sx?)$/.test(path.relative(m.dir, target)));
+    libraries.find(
+      m => source === `@module/${m.id}` && /^(?:index|off)\.(?:[cm]?[jt]sx?)$/.test(path.relative(m.dir, target)),
+    );
   const scopeOf = file => {
     const proto = prototypeRoot(file);
     if (proto) {

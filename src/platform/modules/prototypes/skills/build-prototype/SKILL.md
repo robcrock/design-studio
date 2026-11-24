@@ -30,8 +30,8 @@ A prototype imports only React and React DOM by package name. Icons come from th
 
 Keep experiments local until an authorized shared change moves them into the system.
 
-For new directly authored artifacts, preview and apply [identity assignment](../../../../context/resource-identity.md#direct-authoring-and-verification). Preserve existing identity metadata when editing.
+For new directly authored artifacts, preview and apply [identity assignment](../../../../context/maintainers/resource-identity.md#direct-authoring-and-verification). Preserve existing identity metadata when editing.
 
 ## Verify and save
 
-Inspect changed views, relevant interactions, and pop-ups in supported color modes. Repair rendering errors. Follow [working context](../../../../context/working-in-studio.md) for build, asset, commit, and sharing requirements.
+Inspect changed views, relevant interactions, and pop-ups in supported color modes. Repair rendering errors. Follow the Working in Studio section of `AGENTS.md` for build, asset, commit, and sharing requirements.

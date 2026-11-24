@@ -77,10 +77,7 @@ export default function Welcome() {
   const [step, setStep] = useState(0);
   const current = steps[Math.min(step, steps.length - 1)];
   const examples = manifest.prototypes
-    .filter(
-      p =>
-        p.status !== 'archived' && p.contributorSample && ['feedback-inbox', 'design-studio-marketing'].includes(p.id),
-    )
+    .filter(p => p.status !== 'archived' && p.contributorSample && ['echo-app', 'echo-website'].includes(p.id))
     .sort((a, b) => Number(b.system === 'product') - Number(a.system === 'product'));
   const story = stories[current.id as keyof typeof stories];
   const finish = () => {

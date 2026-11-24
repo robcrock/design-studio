@@ -4,28 +4,13 @@ import { planSystemLifecycle, applySystemLifecycle } from '../lib/system-lifecyc
 import { prototypeContext } from '../lib/prototype-context.js';
 import { resourceId } from '../../core/resourceIdentity.ts';
 import { moduleConsumers } from '../lib/imports.js';
-// pnpm studio <command>: configure, scaffold, and manage local modules and systems. For your agent: designers
-// ask in plain words and the agent runs these. Every command that changes files says what it will do first, and
-// changes nothing until it is run again with --yes.
-//
-//   list                              what is installed, and what is on
-//   enable <module> / disable <module>   turn an optional module on or off in studio.config.json (its files stay)
-//   remove <module|system> [--content] [--yes] [--force]
-//                                     delete a module (its prototypes' content is kept unless --content) or a system
-//   create-module <id> [--label <name>]
-//   create-system <id> [--label <name>]
-//                                     scaffold one in the local team root
-//   sync [--check]                    synchronize routing and project skills; --check never writes
-//   context <prototype-folder> [--json] inspect assignment, rebuild target, scope, and guidance paths; never writes
-//   identity-audit [--json]             inspect existing/missing IDs, including retained types; never writes
-//   identify <prototype-folder> [--yes] assign missing IDs within one owned prototype
-//   check                             validate the local studio
-// Preview local scaffolds and destructive changes before applying with --yes.
+// The commands behind pnpm studio; their summary is the help text in studio.js.
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
+import os from 'node:os';
 import { knowledgeOwners, skillCatalog, syncSkillAdapters } from '../lib/agent-skills.js';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { compatible, PLATFORM_VERSION } from '../../core/modules/index.ts';
 import { readDeclaration } from '../../core/declarations.ts';
 import { MODULES, ENABLED_MODULES, CONFIG } from '../lib/modules.js';
@@ -43,6 +28,10 @@ import { applySetupChanges, editDeclaration } from '../lib/studio-setup.js';
 import { planSettings } from '../lib/studio-settings.js';
 import { renderAgents } from '../lib/agents-file.js';
 import { resolveContributor } from './resolve-contributor.js';
+import { downloadPrototype } from '../../modules/prototypes/node/download.js';
+import { renamePrototype } from '../../modules/prototypes/node/create.js';
+import { duplicatePrototype } from '../../modules/prototypes/node/duplicate.js';
+import { ownedPrototype } from '../build/files/policy.js';
 import { loadContributors } from '../lib/contributors.js';
 import {
   SUPPLIED_MODULES_ROOT,
@@ -50,7 +39,7 @@ import {
   TEAM_MODULES_ROOT,
   TEAM_SYSTEMS_ROOT,
 } from '../../core/roots.ts';
-import { moduleDirOf, moduleFolderTaken, newModuleDir } from '../lib/module-folders.js';
+import { detachOf, moduleDirOf, moduleFolderTaken, newModuleDir } from '../lib/module-folders.js';
 import { newSystemDir, systemDirOf, systemFolderTaken } from '../lib/system-folders.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../..');
@@ -70,9 +59,24 @@ const positional = [];
 for (let i = 0; i < rest.length; i++) {
   const a = rest[i];
   if (a === '--') continue;
-  if (['--yes', '--content', '--force', '--json', '--check', '--restore-prototypes', '--recovery'].includes(a))
+  if (
+    [
+      '--yes',
+      '--content',
+      '--force',
+      '--json',
+      '--check',
+      '--restore-prototypes',
+      '--recovery',
+      '--no-system',
+    ].includes(a)
+  )
     flags[a.slice(2)] = true;
-  else if (['--label', '--name', '--tagline', '--usage', '--system', '--admins', '--maintainers'].includes(a)) {
+  else if (
+    ['--label', '--name', '--tagline', '--usage', '--system', '--admins', '--maintainers', '--out', '--title'].includes(
+      a,
+    )
+  ) {
     flags[a.slice(2)] = rest[++i];
     if (flags[a.slice(2)] === undefined) fail(`${a} needs a value.`);
   } else if (a.startsWith('--')) fail(`Unknown option ${a}.`);
@@ -197,9 +201,7 @@ function setEnabled(id, on) {
   });
   applySetupChanges(plan.edits);
   syncInFreshProcess();
-  say(
-    `${spec.label} is ${on ? 'on' : 'off'}. ${on ? '' : 'Its files are still there; turn it on again any time. '}Restart the dev server for it to take effect.`,
-  );
+  say(`${spec.label} is ${on ? 'on' : 'off'}.${on ? '' : ' Its files are still there; turn it on again any time.'}`);
 }
 
 // Installation and registration are one operation. Rollback restores both.
@@ -288,7 +290,7 @@ function lifecycle(action) {
   }
 }
 
-function remove() {
+async function remove() {
   const [id] = positional;
   if (!id) fail('Usage: pnpm studio remove <module|system> [--content] [--yes] [--force]');
   const isModule = Object.hasOwn(MODULES, id) && MODULES[id];
@@ -301,6 +303,7 @@ function remove() {
     );
   const paths = [];
   const notes = [];
+  const detached = [];
   if (isModule) {
     const spec = MODULES[id];
     if (id === 'contributors' && CONFIG.usage === 'team')
@@ -315,8 +318,20 @@ function remove() {
       else if (fs.existsSync(rel(spec.section.folder)))
         notes.push(`Its content in ${spec.section.folder} stays. Add --content to delete that too.`);
     }
+    // Code that uses the module's library is rewritten into plain code by the module's detach.ts, all or nothing.
     const users = moduleConsumers(ROOT, id);
-    if (users.length && !flags.force)
+    const detachFile = users.length ? detachOf(ROOT, id) : null;
+    if (detachFile) {
+      const { default: detach } = await import(pathToFileURL(detachFile).href);
+      for (const file of users) {
+        const before = fs.readFileSync(rel(file), 'utf8');
+        try {
+          detached.push({ file, before, after: detach(before) });
+        } catch (error) {
+          fail(`${file} can't have ${spec.label} taken out automatically: ${error.message}`);
+        }
+      }
+    } else if (users.length && !flags.force)
       fail(
         `${users.length} file(s) depend on ${id}, like ${users[0]}, and would stop working. Change them first, or add --force.`,
       );
@@ -398,6 +413,10 @@ function remove() {
       fail(`${users.length} prototype(s) use ${id}, like ${users[0]}. Change their "system" first, or add --force.`);
   }
   const abs = paths.map(p => removable(p)).filter(a => fs.existsSync(a));
+  if (detached.length) {
+    say(`These files use ${id} and would keep their current values as plain code:`);
+    for (const { file } of detached) say(`  ${file}`);
+  }
   say(`This would delete:`);
   for (const a of abs) say(`  ${path.relative(ROOT, a)}`);
   for (const n of notes) say(n);
@@ -405,6 +424,12 @@ function remove() {
     say();
     say('Nothing was changed. To remove it, run the same command with --yes.');
     return;
+  }
+  for (const { file, after } of detached) fs.writeFileSync(rel(file), after);
+  const remaining = isModule ? moduleConsumers(ROOT, id) : [];
+  if (remaining.length) {
+    for (const { file, before } of detached) fs.writeFileSync(rel(file), before);
+    fail(`${remaining[0]} still uses ${id} after it was taken out. Nothing was changed.`);
   }
   for (const a of abs) {
     fs.rmSync(a, { recursive: true, force: true });
@@ -414,7 +439,7 @@ function remove() {
   if (!isModule)
     run('pnpm', ['install', '--lockfile-only', '--ignore-scripts', '--prefer-offline', '--no-frozen-lockfile']);
   syncInFreshProcess();
-  say(`Removed ${id}. Restart the dev server.`);
+  say(`Removed ${id}.`);
 }
 
 function create(kind) {
@@ -498,9 +523,7 @@ function create(kind) {
     fail(`Nothing was made. ${e.message}`);
   }
   syncInFreshProcess();
-  say(
-    `Made the ${kind} "${id}" in ${kind === 'module' ? newModuleDir(id) : newSystemDir(id)}/. Restart the dev server to see it.`,
-  );
+  say(`Made the ${kind} "${id}" in ${kind === 'module' ? newModuleDir(id) : newSystemDir(id)}/.`);
 }
 
 function SECTION_TAKEN(id) {
@@ -539,7 +562,7 @@ function configure() {
       .filter(Boolean);
   if (!Object.keys(changes).length)
     fail(
-      'Usage: pnpm studio configure --name "My Studio" --usage personal|team --system <id> [--tagline "..."] [--admins key,key] [--maintainers system=key,key] [--recovery] [--yes]',
+      'Usage: pnpm studio configure [--name "My Studio"] [--usage personal|team] [--system <id>] [--tagline "..."] [--admins key,key] [--maintainers system=key,key] [--recovery] [--yes]. Pass only the settings to change; the rest are kept.',
     );
   const plan = planSettings({
     root: ROOT,
@@ -557,7 +580,7 @@ function configure() {
   }
   applySetupChanges(plan.edits);
   syncInFreshProcess();
-  say('Updated studio.config.json. Restart the dev server.');
+  say('Updated studio.config.json.');
 }
 
 function status() {
@@ -614,10 +637,65 @@ function context() {
   }
 }
 
+// The prototype folder a command names, as its contributor key and folder name.
+function prototypeArg(usage) {
+  const match = /^src\/prototypes\/([^/]+)\/([^/]+)\/?$/.exec(positional[0] ?? '');
+  if (positional.length !== 1 || !match)
+    fail(`Usage: pnpm studio ${command} src/prototypes/<contributor>/<prototype>${usage}`);
+  return { key: match[1], id: match[2], folder: `src/prototypes/${match[1]}/${match[2]}` };
+}
+
+// The prototype menu's Rename and Duplicate, with the same checks as the dev server's routes
+// (src/platform/node/build/vite-files-plugin.js): only a prototype you own. They get commands because they
+// repair links and assign identities, which hand edits get wrong; simpler actions are in the organize-prototype skill.
+function organize(action) {
+  const usage = action === 'rename' ? ' --title "..."' : ' [--title "..."] [--system <id> | --no-system]';
+  const { key, id, folder } = prototypeArg(usage);
+  const owned = ownedPrototype(key, id, resolveContributor());
+  if (owned.error) fail(owned.error);
+  try {
+    if (action === 'rename') {
+      if (flags.title === undefined) fail(`Usage: pnpm studio rename ${folder}${usage}`);
+      const { id: next } = renamePrototype({ key, id, title: flags.title });
+      say(
+        next === id
+          ? `Renamed ${folder}.`
+          : `Renamed ${folder} to src/prototypes/${key}/${next}. Its links were updated.`,
+      );
+    } else {
+      if (flags['no-system'] && flags.system !== undefined) fail('Use --system or --no-system, not both.');
+      const { title } = JSON.parse(fs.readFileSync(path.join(owned.dir, 'meta.json'), 'utf8'));
+      const system = flags['no-system'] ? null : flags.system;
+      const { id: copy } = duplicatePrototype({ key, id, title: flags.title ?? `${title} copy`, system });
+      say(`Duplicated ${folder} to src/prototypes/${key}/${copy}.`);
+    }
+  } catch (error) {
+    fail(error.message);
+  }
+}
+
+// The same Download as the prototype's menu: one HTML file that opens without Studio. Saved where a browser
+// would put it, ~/Downloads, unless --out names the file.
+async function download() {
+  const { key, id } = prototypeArg(' [--out <file>]');
+  const out = path.resolve(flags.out ?? path.join(os.homedir(), 'Downloads', `${id}.html`));
+  try {
+    const html = await downloadPrototype({ key, id });
+    fs.mkdirSync(path.dirname(out), { recursive: true });
+    fs.writeFileSync(out, html);
+    say(`Downloaded ${positional[0]} to ${out} (${(Buffer.byteLength(html) / 1e6).toFixed(1)} MB).`);
+  } catch (error) {
+    fail(error.message);
+  }
+}
+
 const commands = {
   configure,
   status,
   context,
+  download,
+  rename: () => organize('rename'),
+  duplicate: () => organize('duplicate'),
   list,
   check,
   sync: () => {
@@ -636,7 +714,7 @@ const commands = {
 };
 if (!command || !Object.hasOwn(commands, command)) {
   console.error(
-    `Usage: pnpm studio <command>\n  ${[...Object.keys(commands), 'identity-audit', 'identify'].join(', ')}\nSee the top of src/platform/node/cli/studio-runtime.js for what each does.`,
+    `Usage: pnpm studio <command>\n  ${[...Object.keys(commands), 'identity-audit', 'identify'].join(', ')}\nRun pnpm studio --help for what each does.`,
   );
   process.exit(command ? 1 : 0);
 }

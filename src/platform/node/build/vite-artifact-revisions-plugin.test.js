@@ -107,3 +107,27 @@ test('relative CSS imports remain revision inputs even when Vite inlines them', 
     fs.rmSync(directory, { recursive: true, force: true });
   }
 });
+test('imported assets record their bytes on disk, matching the revision endpoint', () => {
+  const directory = fs.mkdtempSync(path.join(ROOT, 'src', '.lifecycle-test-'));
+  try {
+    const entry = path.join(directory, 'screen.tsx'),
+      image = path.join(directory, 'photo.png');
+    fs.writeFileSync(entry, 'export default function Screen() {}');
+    fs.writeFileSync(image, Buffer.from([0x89, 0x50, 0x4e, 0x47]));
+    const graph = {
+      getModulesByFile: () =>
+        new Set([{ file: entry, importedModules: new Set([{ file: image, importedModules: new Set() }]) }]),
+    };
+    const expected = sourceInputs(graph, entry).find(([key]) => key.endsWith('/photo.png'));
+    const [capture, record] = revisions();
+    const compiled = 'export default "/src/photo.png"';
+    capture.transform.handler(compiled, image);
+    const result = record.transform.handler(compiled, image);
+    assert.ok(result.code.startsWith(compiled));
+    assert.ok(result.code.includes(JSON.stringify([expected])));
+    capture.transform.handler(compiled, path.join(directory, 'missing.png'));
+    assert.equal(record.transform.handler(compiled, path.join(directory, 'missing.png')), null);
+  } finally {
+    fs.rmSync(directory, { recursive: true, force: true });
+  }
+});

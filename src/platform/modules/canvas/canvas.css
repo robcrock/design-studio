@@ -19,7 +19,7 @@
    until they're activated; keep the frame's Open link live regardless. */
 /* Everything else in a view is a static preview: pointer input (and the view's own
    link/button cursors) falls through to the canvas, so the whole view reads as
-   movable. Only the linked title bar takes pointer input. */
+   movable. Only the linked title bar (or a card's Open link) takes pointer input. */
 .canvas [data-canvas-frame],
 .canvas [data-canvas-frame] * {
   pointer-events: none;
@@ -110,10 +110,9 @@
   box-shadow: var(--shadow-island);
 }
 
-/* Standalone buttons (menu, Library, help) default to a lavender fill; make them
+/* Standalone buttons (menu, help) default to a lavender fill; make them
    islands like the toolbar and zoom/undo groups. */
 .canvas .excalidraw .main-menu-trigger,
-.canvas .excalidraw .sidebar-trigger,
 .canvas .excalidraw .help-icon {
   height: 2.5rem;
   min-width: 2.5rem;
@@ -124,7 +123,6 @@
 }
 
 .canvas .excalidraw .main-menu-trigger:hover,
-.canvas .excalidraw .sidebar-trigger:hover,
 .canvas .excalidraw .help-icon:hover {
   background: var(--accent);
 }
@@ -152,25 +150,13 @@
 }
 
 /* Selected tool: green tint instead of lavender. */
-.canvas .excalidraw .ToolIcon_type_radio:checked + .ToolIcon__icon {
+.canvas .excalidraw .ToolIcon--checked .ToolIcon__icon {
   --icon-fill-color: var(--foreground);
 }
 
-/* Shortcut numbers crowd 32px tools; shortcuts still work and show in tooltips. */
+/* Shortcut letters crowd 32px tools; shortcuts still work and show in tooltips. */
 .canvas .excalidraw .App-toolbar .ToolIcon__keybinding {
   display: none;
-}
-
-/* Library panel: green works for buttons and selection, not for text. Headings and
-   empty-state copy use neutral text colors. */
-.canvas .excalidraw .library-menu-items-container__header {
-  color: var(--foreground);
-  font-weight: 600;
-}
-
-.canvas .excalidraw .library-menu-items__no-items__label {
-  color: var(--muted-foreground);
-  font-weight: 500;
 }
 
 /* Fast control tooltip (see ControlTooltip.tsx): name + shortcut keys. */
@@ -205,7 +191,6 @@
 .canvas[data-controls-hidden] .selected-shape-actions,
 .canvas[data-controls-hidden] .layer-ui__wrapper__top-right,
 .canvas[data-controls-hidden] .layer-ui__wrapper__footer,
-.canvas[data-controls-hidden] .default-sidebar,
 .canvas[data-controls-hidden] .canvas-tooltip {
   display: none !important;
 }
@@ -278,38 +263,12 @@
   overflow: hidden;
 }
 
-/* Library: only the app-provided items. No browsing or importing other libraries. */
-.canvas .library-menu-control-buttons,
-.canvas .library-menu-browse-button,
-.canvas .library-menu-dropdown-container {
-  display: none !important;
-}
-
-/* Name the app's items ("Excalidraw Library" is the upstream label for them). */
-.canvas .library-menu-items-container__header--excal {
-  font-size: 0 !important;
-}
-.canvas .library-menu-items-container__header--excal::after {
-  content: "Sticky notes";
-  /* Same as the other library headings. */
-  font-size: 18px;
-  line-height: 27px;
-}
-
-/* Sidebar (Library): a docked panel, not a floating island. It sits flush with the
-   canvas edges, so only the edge facing the canvas gets a border. */
-.canvas .excalidraw .sidebar {
-  border: 0;
-  border-left: 1px solid var(--border);
-  border-radius: 0;
-  box-shadow: none;
-}
-
-/* No personal library: it isn't saved anywhere (lost on reload). The app's items only. */
-.canvas .library-menu-items-container__header:not(.library-menu-items-container__header--excal),
-.canvas .library-menu-items__no-items,
-.excalidraw .context-menu [data-testid="addToLibrary"],
-.excalidraw .context-menu li:has(> [data-testid="addToLibrary"]) {
+/* No Library: sticky notes are a native tool, and nothing else lives there. Excalidraw has no option to
+   turn it off, so its button, panel and "Add to library" (with the separator after it) are hidden. */
+.canvas .layer-ui__wrapper__top-right button:has(> .default-sidebar-trigger),
+.canvas .default-sidebar,
+.excalidraw .context-menu li[data-testid="addToLibrary"],
+.excalidraw .context-menu li[data-testid="addToLibrary"] + hr {
   display: none !important;
 }
 
@@ -350,9 +309,9 @@
 
 /*
  * Narrow canvases. The app often sits beside other panels (an agent's own sidebars), so a canvas can be
- * narrow on a desktop. The patched Excalidraw always uses its desktop layout (patches/README.md); when
- * there isn't room for it, the top row stays one row: the menu, the tools (which scroll sideways when
- * they don't fit, and are a little smaller when it's tighter), and the library as an icon.
+ * narrow on a desktop. Excalidraw always uses its desktop layout here (`getFormFactor` in menu.tsx); when
+ * there isn't room for it, the top row stays one row: the menu and the tools (which scroll sideways when
+ * they don't fit, and are a little smaller when it's tighter).
  */
 .canvas {
   container-type: inline-size;
@@ -385,21 +344,11 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
+  /* Start-aligned: a centered row that overflows clips its first tools out of scroll reach. */
   .canvas .shapes-section .App-toolbar {
     overflow-x: auto;
     scrollbar-width: none;
-  }
-
-  /* The library button: icon only. */
-  .canvas .layer-ui__wrapper__top-right .sidebar-trigger {
-    min-width: 2.5rem;
-    width: 2.5rem;
-    padding: 0;
-    justify-content: center;
-  }
-
-  .canvas .layer-ui__wrapper__top-right .sidebar-trigger__label {
-    display: none;
+    justify-content: flex-start;
   }
 }
 
@@ -409,11 +358,6 @@
     --default-button-size: 1.75rem;
     --lg-button-size: 1.75rem;
   }
-}
-
-/* Document previews expose only their outer Open link. */
-.canvas-preview .layer-ui__wrapper {
-  display: none !important;
 }
 
 /* Scene and previews keep laying out while the quiet opening surface is visible. */

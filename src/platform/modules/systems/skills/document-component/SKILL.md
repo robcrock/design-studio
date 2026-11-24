@@ -19,7 +19,7 @@ Apply the system's theme and portal requirements. Skip import when documenting a
 
 1. Run `pnpm component-docs <system> <component>`. The command creates missing files and preserves existing files.
 2. Fill the page's title, description, and `## When to use` section. Add other guidance only when useful.
-   For generated components, use a short `source` frontmatter sentence naming the library, CLI version, and preset, with the `docs` URL alongside it. The compact Source block links the declared system origin and associated libraries to Libraries, while preserving the specific upstream component docs link. Label the generator as shadcn CLI; do not infer missing versions or presets. Keep detailed adaptations in the system's setup record.
+   For generated components, use a short `source` frontmatter sentence naming the library, CLI version, and preset, with the `docs` URL alongside it. The compact Source block credits the libraries whose `components` list includes this component, so add the component's slug to the list of each library it actually comes from, and to no other. It preserves the specific upstream component docs link. Label the generator as shadcn CLI; do not infer missing versions or presets. Keep detailed adaptations in the system's setup record.
 3. Add representative examples covering meaningful variants and states. Replace unfinished required-prop placeholders.
 4. Keep examples unwrapped. The platform supplies the theme frame.
 

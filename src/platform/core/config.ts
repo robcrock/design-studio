@@ -31,7 +31,13 @@ export type StudioConfig = {
   systems: readonly string[];
   // Persisted default system ID; resolved runtime projection contains its source key.
   defaultSystem: string;
+  // Asset Guard (src/platform/node/check/check-asset-size.js): the largest file, in KB, a commit may add or change.
+  // Required, so the limit is visible where the team owns it. Big media goes through Git LFS instead.
+  assetLimitKB: number;
 };
+
+// The limit a new studio declares, and the guard's limit in a repository with no studio.config.json.
+export const ASSET_LIMIT_KB = 750;
 
 // Every property the file accepts, in the order a file lists them. The schema's `properties` must name exactly these.
 export const CONFIG_KEYS = [
@@ -45,6 +51,7 @@ export const CONFIG_KEYS = [
   'systemMaintainers',
   'defaultSystem',
   'admins',
+  'assetLimitKB',
 ] as const satisfies readonly (keyof StudioConfig)[];
 // Compile-time guard: fails to type-check if StudioConfig gains a property CONFIG_KEYS does not list.
 type Unlisted = Exclude<keyof StudioConfig, (typeof CONFIG_KEYS)[number]>;
@@ -143,7 +150,17 @@ export function configProblems(
       problems.push(`${where}: defaultSystem must be registered in systems.`);
   }
   problems.push(...systemMaintainerProblems(c, platformId, contributors));
+  problems.push(...assetLimitProblems(c.assetLimitKB));
   return problems;
+}
+
+// What is wrong with assetLimitKB: it must be declared, as a number of KB above 0.
+export function assetLimitProblems(limit: unknown): string[] {
+  return typeof limit === 'number' && Number.isFinite(limit) && limit > 0
+    ? []
+    : [
+        `${CONFIG_FILE}: declare assetLimitKB, the largest file in KB a commit may add or change, like ${ASSET_LIMIT_KB}.`,
+      ];
 }
 
 // Activation requires an explicit true; omission cannot grant a capability.

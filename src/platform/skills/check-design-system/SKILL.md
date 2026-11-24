@@ -63,4 +63,4 @@ Separate demonstrated deviations from consistency suggestions and missing system
 
 Give each finding a stable identifier so the human can approve a proposed correction, reject it and retain the current design, or clarify intent. A clean result means no deviations found within the stated coverage, not certification of the entire studio.
 
-End with the report and request review. Wait for the human's response. Implement only corrections approved after the report; preserve rejected findings and clarified exceptions. Do not rewrite shared conventions to record an exception unless that change is separately approved. Follow [Working in Studio](../../context/working-in-studio.md) when performing approved work.
+End with the report and request review. Wait for the human's response. Implement only corrections approved after the report; preserve rejected findings and clarified exceptions. Do not rewrite shared conventions to record an exception unless that change is separately approved. Follow the Working in Studio section of `AGENTS.md` when performing approved work.

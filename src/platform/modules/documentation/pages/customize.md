@@ -25,7 +25,7 @@ You own the code. Ask your agent to explain the scope and make the result review
 
 Open **Studio settings** from the local gear icon or search. Registered contributors can view settings; Admins can edit them.
 
-**General** controls the name, tagline, personal or team use, and default system. **Modules** controls installed optional capabilities. Changing the default through settings preserves existing prototype assignments.
+**General** controls the name, tagline, personal or team use, default system, and the largest file size a commit may add (750 KB in a new studio; see [large files](/documentation/context/platform.core/context/assets#large-files)). **Modules** controls installed optional capabilities. Changing the default through settings preserves existing prototype assignments.
 
 Choose **Save changes** to save locally and restart Studio with the new configuration. **Discard** resets unsaved edits. If settings changed elsewhere while you were editing, reload before retrying the save.
 

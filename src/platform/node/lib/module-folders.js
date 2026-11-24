@@ -41,3 +41,15 @@ export const moduleFolderTaken = (root, id) =>
 
 // Ids of the modules in the roots, sorted, without duplicates.
 export const moduleIdsIn = root => [...new Set(discoverModuleFolders(root).map(({ id }) => id))].sort();
+
+// A module library's form while the module is off, lib/off.ts(x): the same exports with no Studio behavior, so code
+// that imports the library keeps working. Null when the module has none.
+export const offLibraryOf = (root, id) =>
+  ['off.ts', 'off.tsx'].map(file => path.join(modulePath(root, id), 'lib', file)).find(file => fs.existsSync(file)) ??
+  null;
+
+// A module's detach.ts: rewrites one file's use of its library into plain code, so the module can be removed.
+export const detachOf = (root, id) => {
+  const file = path.join(modulePath(root, id), 'detach.ts');
+  return fs.existsSync(file) ? file : null;
+};

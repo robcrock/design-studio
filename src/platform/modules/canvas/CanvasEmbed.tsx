@@ -1,7 +1,7 @@
 // A fitted, read-only picture of a canvas. No editor, saving, remembered camera, or agent API.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Excalidraw, restoreElements, CaptureUpdateAction, getCommonBounds } from '@excalidraw/excalidraw';
-import type { AppState, ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
+import type { ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
 import type { EmbedProps } from '@/platform/app/data/fileTypeModule';
 import { readSource } from '@/platform/app/data/files';
 import { rootOf } from '@/platform/core/roots';
@@ -73,24 +73,31 @@ function FittedCanvas({ proto, item, width, height, loadingStartedAt }: EmbedPro
       return null;
     }
   }, [text]);
-  const camera = useMemo(() => {
-    if (!scene?.elements.length) return { scrollX: 0, scrollY: 0, zoom: { value: 1 as AppState['zoom']['value'] } };
-    const [left, top, right, bottom] = getCommonBounds(scene.elements);
-    const zoom = Math.min(1, Math.max(0.01, 0.9 * Math.min(width / (right - left || 1), height / (bottom - top || 1))));
-    return {
-      scrollX: width / (2 * zoom) - (left + right) / 2,
-      scrollY: height / (2 * zoom) - (top + bottom) / 2,
-      zoom: { value: zoom as AppState['zoom']['value'] },
-    };
-  }, [scene, width, height]);
+  // The whole scene, fitted with a margin and never past 100%.
   useEffect(() => {
     if (!api || !scene) return;
     api.updateScene({
       elements: scene.elements,
-      appState: { viewBackgroundColor: scene.background, ...camera },
+      appState: { viewBackgroundColor: scene.background },
       captureUpdate: CaptureUpdateAction.NEVER,
     });
-  }, [api, scene, camera]);
+    if (!scene.elements.length) return;
+    const [left, top, right, bottom] = getCommonBounds(scene.elements);
+    const [w, h] = [right - left, bottom - top];
+    // After the editor has loaded its first scene, which would otherwise reset the camera.
+    let active = true;
+    void api.onEvent('editor:initialize').then(ready => {
+      if (active)
+        ready.setViewport({
+          target: { x: left - w * 0.05, y: top - h * 0.05, width: w * 1.1, height: h * 1.1 },
+          fit: 'scale-down',
+          animation: false,
+        });
+    });
+    return () => {
+      active = false;
+    };
+  }, [api, scene, width, height]);
   if (error || (text !== undefined && !scene))
     return (
       <p role='alert' className='p-4 text-sm'>
@@ -101,7 +108,6 @@ function FittedCanvas({ proto, item, width, height, loadingStartedAt }: EmbedPro
     <div
       ref={container}
       className='canvas canvas-preview relative overflow-hidden bg-muted/30'
-      data-controls-hidden=''
       data-canvas-opening={revealed ? 'ready' : 'loading'}
       style={{ width, height, pointerEvents: 'none' }}
       aria-hidden
@@ -110,13 +116,13 @@ function FittedCanvas({ proto, item, width, height, loadingStartedAt }: EmbedPro
       <div className='canvas-scene absolute inset-0' style={{ opacity: revealed ? 1 : 0 }}>
         {scene && (
           <Excalidraw
-            excalidrawAPI={setApi}
+            onExcalidrawAPI={setApi}
             initialData={{
               elements: scene.elements,
-              appState: { ...camera, theme: dark ? 'dark' : 'light', viewBackgroundColor: scene.background },
+              appState: { theme: dark ? 'dark' : 'light', viewBackgroundColor: scene.background },
             }}
-            viewModeEnabled
-            zenModeEnabled
+            interaction={false}
+            ui={false}
             theme={dark ? 'dark' : 'light'}
             validateEmbeddable={validateEmbed}
             renderEmbeddable={element => (
@@ -128,6 +134,7 @@ function FittedCanvas({ proto, item, width, height, loadingStartedAt }: EmbedPro
                 offscreen={false}
                 overview={false}
                 mounted
+                playing={false}
               />
             )}
           />

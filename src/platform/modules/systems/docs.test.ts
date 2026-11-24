@@ -26,6 +26,11 @@ test('component scanning joins companions within their folder, excludes helpers 
   write('Button/button.md', markdown);
   write('Button/Button.examples.tsx', examples);
   write('Button/IconButton.tsx', 'export function IconButton() {return null;}');
+  write('Button/parts/ButtonIcon.tsx', 'export function ButtonIcon() {return null;}');
+  write('Dialog/Dialog.tsx', 'export function Dialog() {return null;}');
+  write('Dialog/DialogTrigger.tsx', 'export function DialogTrigger() {return null;}');
+  write('Dialog/DialogTrigger.md', markdown.replace('Button', 'Dialog trigger'));
+  write('Dialog/index.ts', '');
   write('other/button.md', markdown);
   write('package.md', markdown);
   write('package.examples.tsx', examples);
@@ -47,7 +52,7 @@ test('component scanning joins companions within their folder, excludes helpers 
   ])
     write(file, '');
   const { components, problems } = systemDocs(root);
-  assert.equal(components.length, 5);
+  assert.equal(components.length, 6);
   const button = components.find(c => c.files.source === 'Button/Button.tsx')!;
   assert.deepEqual(button.files, {
     source: 'Button/Button.tsx',
@@ -56,9 +61,13 @@ test('component scanning joins companions within their folder, excludes helpers 
   });
   assert.equal(components.find(c => c.files.doc === 'other/button.md')!.files.source, null);
   assert.equal(components.find(c => c.files.doc === 'package.md')!.files.source, null);
-  assert.ok(components.some(c => c.files.source === 'Button/IconButton.tsx'));
+  // Inside a folder with an index file, only the file named like the folder, or one documented on its own, is a component.
+  assert.ok(!components.some(c => /IconButton|ButtonIcon/.test(c.files.source ?? '')));
+  assert.ok(components.some(c => c.files.source === 'Dialog/Dialog.tsx'));
+  assert.ok(components.some(c => c.files.source === 'Dialog/DialogTrigger.tsx'));
   assert.deepEqual([...new Set(problems.filter(p => !/same name/.test(p.message)).map(p => p.file))].sort(), [
-    'Button/IconButton.tsx',
+    'Dialog/Dialog.tsx',
+    'Dialog/DialogTrigger.tsx',
     'other/button.md',
   ]);
   assert.equal(problems.filter(p => /same name/.test(p.message)).length, 1);

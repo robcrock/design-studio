@@ -6,14 +6,18 @@
 // Returns { files, baseRef }: baseRef is the "before" side, or null if there isn't one.
 import { execFileSync } from 'node:child_process';
 
-export const git = (...args) =>
-  execFileSync('git', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
-const lines = s => s.split('\n').filter(Boolean);
+const run = args => execFileSync('git', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+export const git = (...args) => run(args).trim();
+// The paths a git command lists. -z keeps them as written: without it git quotes names with accents, symbols or newlines.
+export const gitPaths = (command, ...args) =>
+  run([command, '-z', ...args])
+    .split('\0')
+    .filter(Boolean);
 const ZERO = /^0+$/;
 
 export function changedFiles(mode, before, after, { filter } = {}) {
   const f = filter ? [`--diff-filter=${filter}`] : [];
-  if (mode === '--staged') return { files: lines(git('diff', '--cached', '--name-only', ...f)), baseRef: 'HEAD' };
+  if (mode === '--staged') return { files: gitPaths('diff', '--cached', '--name-only', ...f), baseRef: 'HEAD' };
   if (mode === '--push') {
     let upstream = null;
     try {
@@ -23,8 +27,8 @@ export function changedFiles(mode, before, after, { filter } = {}) {
     }
     // No upstream yet: everything not on any remote.
     const files = upstream
-      ? lines(git('diff', '--name-only', ...f, `${upstream}..HEAD`))
-      : lines(git('log', '--name-only', '--pretty=format:', ...f, 'HEAD', '--not', '--remotes'));
+      ? gitPaths('diff', '--name-only', ...f, `${upstream}..HEAD`)
+      : gitPaths('log', '--name-only', '--pretty=format:', ...f, 'HEAD', '--not', '--remotes');
     return { files: [...new Set(files)], baseRef: upstream };
   }
   if (mode === '--ci') {
@@ -38,11 +42,11 @@ export function changedFiles(mode, before, after, { filter } = {}) {
         /* Initial repository commit has no before-side authority. */
       }
       return {
-        files: lines(git('diff-tree', '--no-commit-id', '--name-only', '-r', '--root', ...f, after)),
+        files: gitPaths('diff-tree', '--no-commit-id', '--name-only', '-r', '--root', ...f, after),
         baseRef: baseline,
       };
     }
-    return { files: lines(git('diff', '--name-only', ...f, `${before}..${after}`)), baseRef: before };
+    return { files: gitPaths('diff', '--name-only', ...f, `${before}..${after}`), baseRef: before };
   }
   return null;
 }

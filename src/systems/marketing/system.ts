@@ -8,6 +8,11 @@ export default {
   themeClass: 'marketing-theme',
   styling: 'tailwind',
   colorModes: ['light', 'dark'],
+  screens: [
+    { name: 'Desktop', width: 1440 },
+    { name: 'Tablet', width: 768 },
+    { name: 'Phone', width: 390 },
+  ],
   docs: 'warn',
   libraries: [
     {
@@ -22,7 +27,12 @@ export default {
       "id": "shadcn",
       "label": "shadcn/ui",
       "description": "Component source and styles",
-      "docs": "https://ui.shadcn.com/docs"
+      "docs": "https://ui.shadcn.com/docs",
+      "components": [
+        "button",
+        "tabs",
+        "tooltip"
+      ]
     },
     {
       "kind": "package",
@@ -51,6 +61,17 @@ export default {
       "package": "@fontsource-variable/geist",
       "description": "System typeface",
       "docs": "https://fontsource.org/fonts/geist",
+      "assets": [
+        "fonts"
+      ]
+    },
+    {
+      "kind": "package",
+      "id": "font-mono",
+      "label": "Geist Mono",
+      "package": "@fontsource-variable/geist-mono",
+      "description": "Monospace typeface for numbers, IDs, and code",
+      "docs": "https://fontsource.org/fonts/geist-mono",
       "assets": [
         "fonts"
       ]

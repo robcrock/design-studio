@@ -5,6 +5,7 @@ import { artifactAvailability } from '@/platform/core/fileTypes';
 // https://tanstack.com/router/latest/docs/framework/react/routing/code-based-routing
 import { Suspense, useRef } from 'react';
 import {
+  createHashHistory,
   createRootRoute,
   createRoute,
   createRouter,
@@ -27,6 +28,7 @@ import {
   findArtifactByIdentity,
   firstArtifact,
   artifactLabel,
+  prototypeLink,
   loadManifest,
   loadPrototype,
   loadPrototypeByIdentity,
@@ -39,6 +41,7 @@ import { createRefreshQueue } from '@/platform/app/data/refreshQueue';
 import { TAB_ID } from '@/platform/app/data/files';
 import { onMutation } from '@/platform/app/data/mutations';
 import { moduleApps } from '@/platform/app/modules';
+import { downloaded } from '@/platform/app/data/downloaded';
 import { APP_NAME } from '@/platform/app/data/config';
 import { loadReference } from '@/platform/app/docs/loadReference';
 import MarkdownPage from '@/platform/app/docs/MarkdownPage';
@@ -76,6 +79,11 @@ const rootRoute = createRootRoute({
 const homeRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/',
+  // A downloaded prototype is the only thing in its page, so it opens there.
+  beforeLoad: async () => {
+    const only = downloaded && (await loadManifest()).prototypes[0];
+    if (only) throw redirect({ ...prototypeLink(only), replace: true });
+  },
   head: () => ({ meta: [{ title: APP_NAME }] }),
   component: Home,
 });
@@ -519,7 +527,8 @@ export const router = createRouter({
   //   import { createHashHistory } from '@tanstack/react-router';
   //   history: createHashHistory(),
   // https://tanstack.com/router/latest/docs/framework/react/manual/history-types
-  basepath: import.meta.env.BASE_URL,
+  // A downloaded prototype opens from disk, where only hash URLs work.
+  ...(downloaded ? { history: createHashHistory() } : { basepath: import.meta.env.BASE_URL }),
   defaultErrorComponent: LoadError,
   defaultPreload: 'intent',
   // Keep the committed page mounted until all destination loaders and renderers resolve.

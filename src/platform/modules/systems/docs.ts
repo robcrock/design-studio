@@ -6,6 +6,8 @@
 //   button/index.ts              re-exports it, so it's imported as .../components/button (not a component file)
 //   button/button.md             front matter (title, description) and a "When to use" section, then
 //                         anything else the team wants to write
+//   button/button-icon.tsx       any other file in a folder with an index file is an internal part of that
+//                         component, unless it has docs or examples of its own
 //
 // Only the first is needed to appear; the others add to the page. Nothing here reads a disk or
 // imports anything, so Node scripts and the app can both load it. src/platform/modules/systems/node/docs.js
@@ -96,7 +98,20 @@ export function discoverComponents(files: string[]): SystemComponent[] {
       component.slug = kebab(c.name);
     }
   }
-  return [...found.values()].sort((a, b) => a.name.localeCompare(b.name));
+  // A folder with an index file is one component, imported as the folder. Its other files, at any depth, are internal
+  // parts: only the file named like the folder, or one with docs or examples of its own, gets a page.
+  const indexed = new Set(
+    files.filter(file => /^index\.[jt]sx?$/.test(baseName(file))).map(file => file.slice(0, -baseName(file).length)),
+  );
+  const internal = ({ name, files: own }: SystemComponent) => {
+    if (!own.source || own.doc || own.examples) return false;
+    const folder = own.source.slice(0, -baseName(own.source).length);
+    const owner = [...indexed].filter(dir => folder.startsWith(dir)).sort((a, b) => b.length - a.length)[0];
+    return (
+      owner !== undefined && !(owner === folder && baseName(folder.slice(0, -1)).toLowerCase() === name.toLowerCase())
+    );
+  };
+  return [...found.values()].filter(component => !internal(component)).sort((a, b) => a.name.localeCompare(b.name));
 }
 
 // The examples an examples file offers: its exports named with a capital, as React components are.
@@ -121,7 +136,9 @@ export function componentProblems(
   const problems: string[] = [];
   const stem = files.source ? baseName(files.source).replace(/\.[jt]sx$/, '') : component.name;
   if (!files.doc && !files.examples)
-    return [`has no examples or description yet. Add ${stem}.examples.tsx and ${stem}.md`];
+    return [
+      `has no examples or description yet. Add ${stem}.examples.tsx and ${stem}.md, or move it into the folder of the component it belongs to`,
+    ];
   if (!files.doc) problems.push(`has no ${stem}.md yet (a title, a description, and a "When to use" section)`);
   else if (text.doc) {
     const file = baseName(files.doc);

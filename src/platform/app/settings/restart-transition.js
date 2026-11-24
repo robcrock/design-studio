@@ -3,6 +3,8 @@
   const key = 'studio:settings-transition';
   let surface, timer;
   function show() {
+    // Views in frames sit under their page's surface.
+    if (window !== window.top) return;
     let pending;
     try {
       pending = JSON.parse(sessionStorage.getItem(key) || 'null');
@@ -10,7 +12,9 @@
       return;
     }
     if (!pending) return;
-    if (Date.now() - pending.started > 120000) {
+    // A save's transition is finished only by the page that saved (Settings). A tab that has gone elsewhere would
+    // otherwise keep the surface over every page until it expires. Outside changes carry no path.
+    if (Date.now() - pending.started > 120000 || (pending.path && pending.path !== location.pathname)) {
       sessionStorage.removeItem(key);
       return;
     }
@@ -39,7 +43,9 @@
     title.style.cssText =
       'font-family:inherit;font-size:24px;font-weight:600;line-height:1.3;letter-spacing:normal;margin:0 0 12px';
     const description = document.createElement('p');
-    description.textContent = 'Your settings are saved. Preparing your updated studio.';
+    description.textContent = pending.external
+      ? 'Studio settings changed. Preparing your updated studio.'
+      : 'Your settings are saved. Preparing your updated studio.';
     description.style.cssText =
       'font-family:inherit;font-size:14px;font-weight:400;line-height:1.6;letter-spacing:normal;margin:0;color:var(--restart-muted,GrayText)';
     const retry = document.createElement('button');

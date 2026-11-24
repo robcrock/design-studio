@@ -150,7 +150,13 @@ export type FileTypeSpec = {
   check?: (file: {
     source: string;
     frontmatter: Record<string, unknown> | null;
-    prototype?: { contributor: string; id: string; studioId?: string };
+    // `artifacts` are the prototype's own, so a rule can tell which links show a system's screen.
+    prototype?: {
+      contributor: string;
+      id: string;
+      studioId?: string;
+      artifacts?: readonly { studioId?: string; systemUsage: 'assigned' | 'independent' }[];
+    };
   }) => string[];
 };
 

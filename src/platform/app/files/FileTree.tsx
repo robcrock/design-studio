@@ -30,6 +30,7 @@ import {
   UnfoldMoreIcon,
 } from '@hugeicons/core-free-icons';
 import { allPrototypes, artifactLabel, artifactLink, prototypeLink } from '@/platform/app/data/manifest';
+import { useManifest } from '@/platform/app/data/useManifest';
 import {
   fileOp,
   openInEditor,
@@ -43,7 +44,13 @@ import {
 } from '@/platform/app/data/files';
 import type { Artifact, Manifest, Prototype } from '@/platform/app/data/types';
 import { artifactAvailability, isHelper } from '@/platform/core/fileTypes';
-import { artifactActions, runArtifactAction, type ArtifactActionTarget } from '@/platform/app/data/fileTypeModule';
+import {
+  artifactActions,
+  runArtifactAction,
+  type ArtifactAction,
+  type ArtifactActionContext,
+  type ArtifactActionTarget,
+} from '@/platform/app/data/fileTypeModule';
 import { navIndent, navRow, navRowState } from '@/platform/app/shell/nav';
 import { artifactUrl } from '@/platform/app/artifacts/artifactLinks';
 import { place } from '@/platform/core/order';
@@ -273,6 +280,8 @@ export type FileTreePolicy = {
   itemForNode?(node: FileNode, items: Map<string, Artifact>): Artifact | undefined;
   bundleItem?(node: FileNode, items: Map<string, Artifact>): Artifact | undefined;
   creationTarget?: string;
+  // Actions other modules add to an item's menu; the prototype navigation passes ModuleApp.artifactActions.
+  artifactActions?(context: ArtifactActionContext, manifest: Manifest): readonly ArtifactAction[];
   CreationDialog?: ComponentType<{
     proto: Prototype;
     open: boolean;
@@ -332,26 +341,29 @@ export default function FileTree({
   const fixed = (node: FileNode) => policy.fixed?.(node) ?? false;
   const newOptions = (folder: string) => policy.newOptions(folder, { live, editable });
   const items = new Map(proto.artifacts.map(i => [i.path, i]));
+  const manifest = useManifest();
   const actionTarget = useRef<(path: string) => ArtifactActionTarget | undefined>(() => undefined);
   useLayoutEffect(() => {
     actionTarget.current = path => {
       const item = items.get(path);
       if (!item) return undefined;
       const module = fileTypeModules[item.fileType];
+      const context = {
+        proto,
+        item,
+        environment: {
+          local: live,
+          editable,
+          present: true,
+          renderer: Boolean(module),
+          scope: policy.scope,
+        },
+      };
       return {
         spec: FILE_TYPES[item.fileType],
         module,
-        context: {
-          proto,
-          item,
-          environment: {
-            local: live,
-            editable,
-            present: true,
-            renderer: Boolean(module),
-            scope: policy.scope,
-          },
-        },
+        context,
+        contributed: policy.artifactActions?.(context, manifest),
       };
     };
     return () => {
@@ -624,7 +636,14 @@ export default function FileTree({
     const spec = menuItem && FILE_TYPES[menuItem.fileType];
     const available = artifactAvailability(spec, environment);
     const actionContext = menuItem ? { proto, item: menuItem, environment } : undefined;
-    const actions = actionContext ? artifactActions(spec, fileTypeModules[menuItem!.fileType], actionContext) : [];
+    const actions = actionContext
+      ? artifactActions(
+          spec,
+          fileTypeModules[menuItem!.fileType],
+          actionContext,
+          policy.artifactActions?.(actionContext, manifest),
+        )
+      : [];
     if (!local && !actions.some(({ action }) => !action.localOnly && !action.mutates))
       return <div key={key}>{children}</div>;
     return (
@@ -977,6 +996,7 @@ export default function FileTree({
               pressed={filterOpen}
               onClick={() => {
                 setExpanded(true);
+                if (filterOpen) setFilter('');
                 setFilterOpen(o => !o);
               }}
             >

@@ -25,6 +25,7 @@ const source: StudioConfig = {
   defaultSystem: systemId,
   admins: [contributorId],
   systemMaintainers: { [systemId]: [contributorId] },
+  assetLimitKB: 750,
 };
 
 test('persisted relationships resolve independently of contributor and system source names', () => {

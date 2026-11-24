@@ -31,6 +31,6 @@ Return the contributor key and unresolved identity or access issues to the calle
 
 Offer a first prototype. If requested, create it with `pnpm new` using the existing default system.
 
-Start the local app and inspect the contributor's work area and any requested prototype. Follow [working context](../../context/working-in-studio.md) for build and save requirements.
+Start the local app and inspect the contributor's work area and any requested prototype. Follow the Working in Studio section of `AGENTS.md` for build and save requirements.
 
 Leave the app available. Report local readiness separately from missing GitHub access.

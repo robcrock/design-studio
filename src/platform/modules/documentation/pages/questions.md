@@ -68,4 +68,4 @@ If a direct link fails but Home opens, ask the agent to check the host's page-ro
 
 Ask the agent to inspect available Git history before attempting recovery. A local save is not itself a recovery snapshot, and deleted work may not have a recorded version.
 
-For deeper investigation, the agent can consult **Context & Skills**, including [Checks and fixes](/documentation/context/platform.core/context/checks).
+For deeper investigation, the agent can consult **Context & Skills**, including [Checks and fixes](/documentation/context/platform.core/context/maintainers/checks).

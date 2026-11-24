@@ -5,3 +5,5 @@ export { cn } from 'cn';
 export { PortalContext } from '../core/runtime/portal.ts';
 /** The nearest host's themed overlay container, or null without a provider. */
 export { usePortalContainer } from '../core/runtime/portal.ts';
+/** The current color mode of the nearest system theme boundary; use it instead of watching `.dark` on <html>. */
+export { useColorMode, type ColorMode } from '../core/runtime/color-mode.ts';

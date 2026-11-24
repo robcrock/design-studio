@@ -19,4 +19,4 @@ Follow the [documentation standard](../../../../context/documentation-standards.
 
 The sidebar follows enabled pages automatically. There is no sequential reading navigation. The Documentation module's [README](../../README.md) explains source editing and discovery.
 
-Inspect the rendered chapter and follow [working context](../../../../context/working-in-studio.md) for shared scope, checks, and saving.
+Inspect the rendered chapter and follow the Working in Studio section of `AGENTS.md` for shared scope, checks, and saving.

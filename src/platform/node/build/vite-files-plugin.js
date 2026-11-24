@@ -28,6 +28,7 @@ import { documentationSources, sourceFile } from './files/source.js';
 //   POST /__studio/prototype-duplicate { contributor, prototype, title, system }   copy an owned personal prototype
 //   POST /__studio/prototype-rename { contributor, prototype, title }   retitle a prototype you own; a new title renames its folder too
 //   POST /__studio/prototype-delete { contributor, prototype }   move a prototype you own to the Trash
+//   POST /__studio/prototype-download { contributor, prototype }   any prototype as one HTML file (prototypes/node/download.js)
 //     It replies with the new path and the updated manifest, so the app can follow a renamed view.
 //
 // POST /__studio/editor opens an installed editor or explains its Finder fallback.
@@ -45,6 +46,7 @@ import { ROOT } from './files/paths.js';
 import { pathToFileURL } from 'node:url';
 import { buildManifest } from './build-manifest.js';
 import { createPrototype, renamePrototype } from '../../modules/prototypes/node/create.js';
+import { downloadPrototype } from '../../modules/prototypes/node/download.js';
 import { duplicatePrototype } from '../../modules/prototypes/node/duplicate.js';
 import { publishManifest } from './vite-manifest-watch-plugin.js';
 import { resolveContributor } from '../cli/resolve-contributor.js';
@@ -75,8 +77,8 @@ import {
   versionOf,
 } from './files/paths.js';
 import { readJson, sameOrigin, send } from './files/http.js';
-import { canChange, canWriteSource, ownerError, owns } from './files/policy.js';
-import { SYSTEM_CONTENT_NOTE, reveal, runOp, trash } from './files/ops.js';
+import { canChange, canWriteSource, ownedPrototype, ownerError, owns } from './files/policy.js';
+import { reveal, runOp, trash } from './files/ops.js';
 
 export default function filesPlugin() {
   let moves;
@@ -342,10 +344,8 @@ export default function filesPlugin() {
           }
           if (req.method === 'POST' && url.pathname === '/prototype-rename') {
             const { contributor, prototype, title } = await readJson(req);
-            const dir = prototypeDir(contributor, prototype);
-            if (!dir) return send(res, 404, { error: 'This prototype no longer exists.' });
-            if (contributor === SYSTEM_CONTENT_KEY) return send(res, 403, { error: SYSTEM_CONTENT_NOTE });
-            if (!owns(contributor, me(), dir)) return send(res, 403, { error: ownerError(contributor, me()) });
+            const owned = ownedPrototype(contributor, prototype, me());
+            if (owned.error) return send(res, owned.status, { error: owned.error });
             try {
               const { id, manifest } = renamePrototype({ key: contributor, id: prototype, title });
               moves.flush();
@@ -358,9 +358,8 @@ export default function filesPlugin() {
           }
           if (req.method === 'POST' && url.pathname === '/prototype-duplicate') {
             const { contributor, prototype, title, system } = await readJson(req);
-            const dir = prototypeDir(contributor, prototype);
-            if (!dir) return send(res, 404, { error: 'This prototype no longer exists.' });
-            if (!owns(contributor, me(), dir)) return send(res, 403, { error: ownerError(contributor, me()) });
+            const owned = ownedPrototype(contributor, prototype, me());
+            if (owned.error) return send(res, owned.status, { error: owned.error });
             try {
               const { id, manifest } = duplicatePrototype({ key: contributor, id: prototype, title, system });
               publishManifest(server, manifest, req.headers['x-studio-tab']);
@@ -369,13 +368,21 @@ export default function filesPlugin() {
               return send(res, 400, { error: e.message });
             }
           }
+          if (req.method === 'POST' && url.pathname === '/prototype-download') {
+            const { contributor, prototype } = await readJson(req);
+            try {
+              const html = await downloadPrototype({ key: contributor, id: prototype });
+              res.setHeader('Content-Type', 'text/html; charset=utf-8');
+              return res.end(html);
+            } catch (e) {
+              return send(res, 400, { error: e.message });
+            }
+          }
           if (req.method === 'POST' && url.pathname === '/prototype-delete') {
             const { contributor, prototype } = await readJson(req);
-            const dir = prototypeDir(contributor, prototype);
-            if (!dir) return send(res, 404, { error: 'This prototype no longer exists.' });
-            if (contributor === SYSTEM_CONTENT_KEY) return send(res, 403, { error: SYSTEM_CONTENT_NOTE });
-            if (!owns(contributor, me(), dir)) return send(res, 403, { error: ownerError(contributor, me()) });
-            const trashedTo = trash(dir);
+            const owned = ownedPrototype(contributor, prototype, me());
+            if (owned.error) return send(res, owned.status, { error: owned.error });
+            const trashedTo = trash(owned.dir);
             const { manifest } = buildManifest();
             publishManifest(server, manifest, req.headers['x-studio-tab']);
             return send(res, 200, { trashedTo, manifest });

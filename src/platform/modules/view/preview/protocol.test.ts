@@ -30,6 +30,7 @@ const config: Config = {
   href: '/studio/prototypes/0123456789abcdef/artifacts/fedcba9876543210?q=hello#part',
   dark: false,
   surface: 'page',
+  still: false,
 };
 const envelope = {
   channel: CHANNEL,
@@ -101,6 +102,8 @@ test('configuration identity and surface are explicit and validated', () => {
   for (const change of [
     { dark: undefined },
     { surface: 'invented' },
+    { still: undefined },
+    { still: true }, // a page is never still
     { href: '//evil.example' },
     { target: { ...target, artifactId: 'invalid' } },
     { target: { ...target, prototype: 'x'.repeat(257) } },
@@ -118,7 +121,7 @@ test('configuration identity and surface are explicit and validated', () => {
 });
 
 test('direct preview URLs round-trip under a static base path without another HTML entry', () => {
-  const url = new URL(previewUrl(config, envelope.session, '/studio/'), origin);
+  const url = new URL(previewUrl(config, envelope.session, '/studio/index.html'), origin);
   assert.equal(url.pathname, '/studio/index.html');
   assert.equal(url.searchParams.get('studio-preview'), '1');
   assert.deepEqual(readBootstrap(url.search), { config, session: envelope.session });

@@ -3,7 +3,7 @@ import type { SystemContentMap } from '@/platform/modules/systems/content/map';
 import type { SystemComponentDoc } from '@/platform/modules/systems/docs';
 import type { ThemeToken } from '@/platform/modules/systems/themeTokens';
 import type { DocsMode } from '@/platform/modules/systems/sources';
-import type { SystemLibrary } from '@/platform/modules/systems/spec';
+import type { SystemLibrary, SystemScreen } from '@/platform/modules/systems/spec';
 
 // public/prototypes/manifest.json, written by src/platform/node/build/build-manifest.js, with each prototype's artifacts
 // in public/prototypes/artifacts/<contributor>/<prototype>.json.
@@ -30,6 +30,7 @@ export type PrototypeInfo = {
   created: string | null;
   system: string | null; // resolved source key; null means custom styling
   systemId?: string | null; // permanent assignment identity; system is its resolved source selector
+  screens: SystemScreen[]; // its system's screens (the app's own without one); the first is the default
   owner?: { id: string; kind: 'platform' | 'module' | 'system'; label: string; root: string };
   systemMissing?: { systemId: string; label: string }; // deleted dependency; source retained for rebuild
   rebuild?: {

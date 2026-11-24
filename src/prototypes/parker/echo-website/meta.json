@@ -1,0 +1,16 @@
+{
+  "formatVersion": 1,
+  "title": "Echo website",
+  "created": "2026-10-03",
+  "order": [
+    "review-board.excalidraw",
+    "project-brief.md",
+    "home.tsx",
+    "alternative-light-hero.tsx",
+    "meta.json",
+    "_components"
+  ],
+  "studioId": "2h7mkxzppqfjv1xv",
+  "ownerContributorId": "62bhewkp605tb9y6",
+  "systemId": "v4576ka1mbpbqdp1"
+}

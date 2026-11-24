@@ -47,18 +47,19 @@ import {
   applyContributorPreferences,
 } from './contributor-preferences.js';
 function declarations(root) {
-  for (const file of [
-    'src/platform/modules/onboarding/module.ts',
-    'src/platform/systems/studio/system.ts',
-    'src/systems/product/system.ts',
-    'src/systems/marketing/system.ts',
-  ]) {
+  for (const file of ['src/platform/modules/onboarding/module.ts', 'src/platform/systems/studio/system.ts']) {
     fs.mkdirSync(path.dirname(path.join(root, file)), { recursive: true });
     fs.copyFileSync(file, path.join(root, file));
   }
+  // A fixture team system, so the test never depends on which team systems a studio keeps.
+  fs.mkdirSync(path.join(root, 'src/systems/acme'), { recursive: true });
+  fs.writeFileSync(path.join(root, 'src/systems/acme/system.ts'), "export default { studioId: 'abcdefghjkmnpqrs' };");
   const config = JSON.parse(fs.readFileSync('studio.config.json'));
   config.usage = 'personal';
   config.admins = ['0123456789abcdef'];
+  config.systems = ['acme'];
+  config.systemMaintainers = { abcdefghjkmnpqrs: [] };
+  config.defaultSystem = 'abcdefghjkmnpqrs';
   fs.writeFileSync(path.join(root, 'studio.config.json'), JSON.stringify(config));
   const file = path.join(root, 'contributors/sam.json');
   const profile = JSON.parse(fs.readFileSync(file));

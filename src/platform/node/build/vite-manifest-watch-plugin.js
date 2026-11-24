@@ -12,7 +12,10 @@ import { MODULE_ROOTS, SYSTEM_ROOTS } from '../../core/roots.ts';
 import { SYSTEM_SPECS } from '../../modules/systems/node/systems.js';
 import { fileURLToPath } from 'node:url';
 import { buildManifest } from './build-manifest.js';
-import { FILE_TYPES, fileTypeOf } from '../lib/file-types.js';
+import { FILE_TYPES, INSTALLED_FILE_TYPES, fileTypeOf } from '../lib/file-types.js';
+import { auditResourceIdentities } from '../lib/resource-identity-audit.js';
+import { identifyAuthored, prototypeFolderOf } from '../lib/prototype-identification.js';
+import { resolveContributor } from '../cli/resolve-contributor.js';
 import { ENABLED_MODULES, PROTOTYPE_DIRS } from '../lib/modules.js';
 import { CONTRIBUTORS_DIR } from '../lib/contributors.js';
 import { contributedWatchDirs } from '../lib/module-builds.js';
@@ -58,7 +61,7 @@ function relevant(file, kind) {
   if (inside(SYSTEM_CONTENT, file)) return kind !== 'change' || file.endsWith('.md');
   if (file.endsWith('.md') && /src[\\/]platform[\\/]core[\\/]/.test(file)) return true;
   if (![PROTOS, ...PROTOTYPE_DIRS].some(dir => inside(dir, file))) return false;
-  return kind !== 'change' || path.basename(file) === 'meta.json' || hasFidelity(file);
+  return kind !== 'change' || path.basename(file) === 'meta.json' || hasFidelity(file) || lacksIdentity(file);
 }
 
 const hasFidelity = file => {
@@ -66,12 +69,49 @@ const hasFidelity = file => {
   return Boolean(id && FILE_TYPES[id].capabilities.fidelity);
 };
 
+// A file saved over without its identity (an agent rewriting a new view whole) needs one again.
+const lacksIdentity = file => {
+  const identity = FILE_TYPES[fileTypeOf(file)]?.identity;
+  try {
+    return Boolean(identity) && identity.read(fs.readFileSync(file, 'utf8')) === null;
+  } catch {
+    return false;
+  }
+};
+
+const relativePath = file => path.relative(ROOT, file).split(path.sep).join('/');
+
+// Gives files written outside the app their permanent identity before the manifest is built (see identifyAuthored).
+// A folder this contributor can't edit, or one that isn't ready (a new prototype without its systemId), is reported once
+// and left to the manifest's own error.
+function identify(folders, logger, reported) {
+  for (const result of identifyAuthored(ROOT, INSTALLED_FILE_TYPES, folders, resolveContributor)) {
+    if (!result.error)
+      logger.info(
+        `[identity] Assigned ${result.changed} missing identit${result.changed === 1 ? 'y' : 'ies'} in ${result.folder}.`,
+      );
+    else if (!reported.has(`${result.folder}:${result.error.message}`)) {
+      reported.add(`${result.folder}:${result.error.message}`);
+      logger.warn(`[identity] ${result.folder} keeps its missing identities: ${result.error.message}`);
+    }
+  }
+}
+
 export default function manifestWatch() {
   return {
     name: 'prototype-manifest-watch',
     apply: 'serve',
     configureServer(server) {
-      if (!fs.existsSync(path.join(ROOT, '.studio-system-operation'))) buildManifest();
+      const reported = new Set();
+      if (!fs.existsSync(path.join(ROOT, '.studio-system-operation'))) {
+        // Files written while the server was stopped.
+        identify(
+          auditResourceIdentities(ROOT, INSTALLED_FILE_TYPES).missing.map(prototypeFolderOf),
+          server.config.logger,
+          reported,
+        );
+        buildManifest();
+      }
       server.watcher.add([
         PROTOS,
         ...PROTOTYPE_DIRS,
@@ -91,6 +131,11 @@ export default function manifestWatch() {
           timer = setTimeout(flush, BATCH_MS);
           return;
         }
+        identify(
+          [...touched].map(file => prototypeFolderOf(relativePath(file))),
+          server.config.logger,
+          reported,
+        );
         const { manifest } = buildManifest({ touched: [...touched] });
         if ([...touched].some(file => /[\\/]skills(?:[\\/]|$)/.test(file))) {
           try {

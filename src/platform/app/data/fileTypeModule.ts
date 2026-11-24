@@ -10,7 +10,18 @@ export type ArtifactContext = { proto: Prototype; item: Artifact };
 
 // What a type shows where another item includes it (in documents or on canvases): a live preview, in a box of
 // this size. A type without one is shown as a card.
-export type EmbedProps = { proto: Prototype; item: Artifact; width: number; height: number; loadingStartedAt?: number };
+// `still`: the surface wants a still picture, so an Embed with motion may hold it once rendered.
+export type EmbedProps = {
+  proto: Prototype;
+  item: Artifact;
+  width: number;
+  height: number;
+  // The screen width a view is laid out at, when the surface asks for one (a view on a canvas). Otherwise
+  // the prototype's default screen, the first of its system's (Prototype.screens).
+  viewport?: number;
+  still: boolean;
+  loadingStartedAt?: number;
+};
 
 export type FileTypeModule<Props extends object = any> = {
   // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -70,53 +81,59 @@ export function assertFileTypeModule(id: string, spec: FileTypeSpec, module: Fil
     fail('capabilities.actions must match action implementations.');
 }
 
+// The type's declared actions, then those other modules add to it (ModuleApp.artifactActions), each with its availability.
 export function artifactActions(
   spec: FileTypeSpec | undefined,
   module: FileTypeModule | undefined,
   context: ArtifactActionContext,
+  contributed: readonly ArtifactAction[] = [],
 ) {
   const env = context.environment;
-  return (module?.actions ?? [])
-    .filter(action => spec?.capabilities.actions.includes(action.id))
-    .map(action => {
-      const base = capabilityAvailability(
-        true,
-        !env.present && 'This artifact is unavailable.',
-        !env.renderer && 'The artifact renderer is unavailable.',
-        Boolean(spec && !(env.scope === 'prototype' ? spec.inPrototype : spec.inSystemContent)) &&
-          'This artifact type is unavailable in this scope.',
-        action.localOnly && !env.local && 'This operation is available only in a local studio.',
-        action.mutates && (!env.local || !env.editable) && 'You do not have permission to change this artifact.',
-      );
-      if (!base.available) return { action, availability: base };
-      try {
-        const reason = action.unavailable ? action.unavailable(context) : null;
-        if (reason !== null && (typeof reason !== 'string' || !reason.trim()))
-          throw new Error('Return a nonempty reason or null.');
-        return { action, availability: capabilityAvailability(true, reason ?? undefined) };
-      } catch {
-        return {
-          action,
-          availability: capabilityAvailability(
-            true,
-            'This action could not determine availability. Check its module availability callback.',
-          ),
-        };
-      }
-    });
+  return [
+    ...(module?.actions ?? []).filter(action => spec?.capabilities.actions.includes(action.id)),
+    ...contributed,
+  ].map(action => {
+    const base = capabilityAvailability(
+      true,
+      !env.present && 'This artifact is unavailable.',
+      !env.renderer && 'The artifact renderer is unavailable.',
+      Boolean(spec && !(env.scope === 'prototype' ? spec.inPrototype : spec.inSystemContent)) &&
+        'This artifact type is unavailable in this scope.',
+      action.localOnly && !env.local && 'This operation is available only in a local studio.',
+      action.mutates && (!env.local || !env.editable) && 'You do not have permission to change this artifact.',
+    );
+    if (!base.available) return { action, availability: base };
+    try {
+      const reason = action.unavailable ? action.unavailable(context) : null;
+      if (reason !== null && (typeof reason !== 'string' || !reason.trim()))
+        throw new Error('Return a nonempty reason or null.');
+      return { action, availability: capabilityAvailability(true, reason ?? undefined) };
+    } catch {
+      return {
+        action,
+        availability: capabilityAvailability(
+          true,
+          'This action could not determine availability. Check its module availability callback.',
+        ),
+      };
+    }
+  });
 }
 
 export type ArtifactActionTarget = {
   spec: FileTypeSpec | undefined;
   module: FileTypeModule | undefined;
   context: ArtifactActionContext;
+  contributed?: readonly ArtifactAction[];
 };
 
 // Resolve current state after the menu closes; handlers still need server-authorized writes.
 export async function runArtifactAction(id: string, resolve: () => ArtifactActionTarget | undefined) {
   const target = resolve();
   if (!target) throw new Error('This artifact is unavailable.');
-  const entry = artifactActions(target.spec, target.module, target.context).find(({ action }) => action.id === id);
+  const entry = artifactActions(target.spec, target.module, target.context, target.contributed).find(
+    ({ action }) => action.id === id,
+  );
   if (!entry) throw new Error('This artifact action is unsupported.');
   if (!entry.availability.available) throw new Error(entry.availability.reason);
   return entry.action.run(target.context);

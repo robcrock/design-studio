@@ -20,6 +20,9 @@ export const UI_OPTIONS: ExcalidrawProps['UIOptions'] = {
   // 9 shortcut, and pasting and dropping images. A canvas shows the real view instead. The other
   // guards: format.ts (never saved), type.ts (the build fails on one).
   tools: { image: false },
+  // The desktop layout at every size. A canvas is often narrow because it sits beside an agent's
+  // sidebars, and Excalidraw's phone layout (a bottom bar, a pop-up menu) is harder to use there.
+  getFormFactor: () => 'desktop',
 };
 
 const MAC = /Mac|iPhone|iPad/.test(navigator.platform);

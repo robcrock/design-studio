@@ -31,6 +31,8 @@ export type ArtifactResolution =
       typeLabel: string;
       presentation: 'preview' | 'card';
       preview: { available: boolean; code?: AvailabilityCode; message?: string };
+      // The screens a live preview of it can be laid out at: its system's, for a type that uses one. The first is the default.
+      screens?: Readonly<Prototype['screens']>;
     };
 const hosts: HostSurfaceSpec[] = [
   { id: 'document', scopes: ['prototype'], references: 'same-prototype' },
@@ -101,6 +103,7 @@ export function inspectArtifact(request: ArtifactRequest, manifest: Manifest): A
     target,
     href: artifactPath(target.proto, target.item),
     typeLabel: spec.label,
+    ...(available && spec.systemUsage === 'assigned' && { screens: target.proto.screens }),
     presentation: available ? 'preview' : 'card',
     preview: available
       ? { available: true }

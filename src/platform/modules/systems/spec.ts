@@ -34,6 +34,9 @@ export type SystemLibrary = {
   components?: readonly string[];
 };
 
+// A screen the system's designs are made for: a name people use ("Phone") and its width in CSS pixels.
+export type SystemScreen = { name: string; width: number };
+
 export type SystemSpec = {
   studioId?: string; // permanent installed identity; optional in an uninstalled package or scaffold
   role: 'platform' | 'prototype';
@@ -46,6 +49,9 @@ export type SystemSpec = {
   // Select the declared utility contract, or own scoped CSS without Tailwind token requirements.
   styling: 'tailwind' | 'custom';
   colorModes: readonly ColorMode[];
+  // The screen widths its designs are made for. The first is the default: a view placed on a canvas or in a
+  // document is laid out at its width unless the canvas asks for another. How much height shows is the canvas's.
+  screens: readonly SystemScreen[];
   docs: DocsMode;
   // Where its components come from. 'shadcn' gives each component page a link to that component's
   // shadcn/ui docs; a page can set its own link with `docs:` in its frontmatter. Use null for a
@@ -56,6 +62,8 @@ export type SystemSpec = {
 
 const ID = /^[a-z][a-z0-9-]*$/;
 const CLASS = /^[a-z][a-z0-9-]*$/;
+export const MIN_SCREEN = 200;
+export const MAX_SCREEN = 4096;
 
 // What is wrong with a system's system.ts, each as a sentence that says what to fix. `folder` is the name of the
 // folder it was found in, which is also its id; `dir` is that folder's path ("src/systems/product/"), in the team
@@ -89,6 +97,23 @@ export function systemProblems(spec: unknown, folder: string, dir = `${TEAM_SYST
     new Set(s.colorModes).size !== s.colorModes.length
   )
     problems.push(`${where}: colorModes must be a nonempty list of unique 'light' or 'dark' modes.`);
+  if (
+    !Array.isArray(s.screens) ||
+    !s.screens.length ||
+    s.screens.some(
+      screen =>
+        !screen ||
+        typeof screen.name !== 'string' ||
+        !screen.name.trim() ||
+        !Number.isInteger(screen.width) ||
+        screen.width < MIN_SCREEN ||
+        screen.width > MAX_SCREEN,
+    ) ||
+    new Set(s.screens.map(screen => screen?.name)).size !== s.screens.length
+  )
+    problems.push(
+      `${where}: screens must be a nonempty list of uniquely named screens, like { name: 'Desktop', width: 1440 }, with whole-pixel widths from ${MIN_SCREEN} to ${MAX_SCREEN}. The first is the default.`,
+    );
   if (!['tailwind', 'custom'].includes(s.styling ?? ''))
     problems.push(`${where}: styling must be 'tailwind' or 'custom'.`);
   if (!s.docs || !['warn', 'strict', 'off'].includes(s.docs))

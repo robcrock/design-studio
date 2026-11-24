@@ -5,13 +5,17 @@ import type { Artifact, Prototype } from '@/platform/app/data/types';
 import { SectionNav } from '@/platform/app/shell/nav';
 import PrototypeHeader from '@/platform/modules/prototypes/viewer/PrototypeHeader';
 import { FileTree } from '#studio/ui';
+import { contributedArtifactActions } from '@/platform/app/modules';
 import { prototypeFileTreePolicy } from './fileTreePolicy';
+
+// Its files' menus also carry what other modules add to them (ModuleApp.artifactActions).
+const policy = { ...prototypeFileTreePolicy, artifactActions: contributedArtifactActions };
 
 export default function PrototypeNav({ proto, current }: { proto: Prototype; current: Artifact | undefined }) {
   return (
     <SectionNav label='Prototype navigation'>
       <PrototypeHeader proto={proto} />
-      <FileTree policy={prototypeFileTreePolicy} proto={proto} current={current} />
+      <FileTree policy={policy} proto={proto} current={current} />
     </SectionNav>
   );
 }

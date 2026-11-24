@@ -19,7 +19,7 @@ Enabled file types determine other artifacts. Documents and canvases require the
 
 Artifact IDs are unique across retained resources. Source navigation paths must also be unambiguous: `main.tsx` and `main.md` cannot share the same extensionless path in one folder.
 
-Create artifacts through Studio’s file operations or preserve the declared ID while editing an existing file. For directly authored new files, preview `pnpm studio identify <prototype-folder> --json`, then apply with `--yes`. It assigns only missing IDs within that owner’s prototype; it does not replace existing IDs. Builds reject unidentified artifacts, including retained disabled types.
+Create artifacts through Studio’s file operations or preserve the declared ID while editing an existing file. Directly authored new files get their IDs from the running dev server as they appear. Without it, preview `pnpm studio identify <prototype-folder> --json`, then apply with `--yes`. Either way, only missing IDs are assigned within that owner’s prototype; it does not replace existing IDs. Builds reject unidentified artifacts, including retained disabled types.
 
 ## Metadata
 
@@ -61,7 +61,7 @@ Deleting a prototype moves its folder to the Trash and shows a confirmation toas
 
 ## Links and renaming
 
-`/prototypes/<prototype-id>` redirects to the first available artifact’s permanent address in navigation order, replacing the entry in browser history. An empty prototype remains at its prototype address. `/prototypes/<prototype-id>/artifacts/<artifact-id>` opens a specific artifact within that prototype. Source mode uses `?mode=source`. IDs come from source metadata described in [Resource identity](../../context/resource-identity.md). There are no readable-route compatibility aliases.
+`/prototypes/<prototype-id>` redirects to the first available artifact’s permanent address in navigation order, replacing the entry in browser history. An empty prototype remains at its prototype address. `/prototypes/<prototype-id>/artifacts/<artifact-id>` opens a specific artifact within that prototype. Source mode uses `?mode=source`. IDs come from source metadata described in [Resource identity](../../context/maintainers/resource-identity.md). There are no readable-route compatibility aliases.
 
 Navigation names and hierarchy remain a reflection of the files and folders. They are independent of the public URL.
 
@@ -69,7 +69,7 @@ Changing the title in the app also renames the prototype folder to its slug. Dir
 
 Renaming preserves permanent shared URLs and all resource IDs. Relative document links survive a prototype-folder rename. File moves still affect source dependencies; permanent routes do not replace reference repair.
 
-The app repairs internal references when files or folders are renamed or moved: local literal imports and exports, literal view navigation paths, Markdown link destinations, and canvas element links. Moving a source file also rebases its relative references. Prototype renaming retains permanent browser links. Duplication remaps copied permanent links to fresh prototype and artifact IDs. Both preserve applicable filesystem reference repair.
+The app repairs internal references when files or folders are renamed or moved: local literal imports and exports, literal view navigation paths, Markdown link destinations, and canvas element links. Moving a source file also rebases its relative references. Prototype renaming retains permanent browser links. The menu's Rename and Duplicate are also `pnpm studio rename|duplicate <prototype folder>`, which run the same code and ownership check (`ownedPrototype` in `src/platform/node/build/files/policy.js`) as the dev server's routes. Duplication remaps copied permanent links to fresh prototype and artifact IDs. Both preserve applicable filesystem reference repair.
 
 These transformations are supplied by installed [source reference adapters](../../context/file-types.md#source-reference-adapters). Supporting CSS URLs and imports participate too. New formats supply an adapter rather than requiring central file-operation branches.
 
@@ -79,7 +79,7 @@ While the dev server is running, the same repair follows unambiguous filesystem 
 
 Moves made while the server is stopped, dynamically assembled paths, and incoming links from other prototypes still need an agent to update and verify them. Keep the server running while organizing files when automatic repair is wanted.
 
-Navigate with the public `@module/prototypes` library, never by importing TanStack Router. `Link` (`<Link to="app/main">`) and `useNavigate` (`const navigate = useNavigate(); navigate('app/main')`) take a prototype-relative path such as `app/main` and go to its permanent URL; a target that starts with `/` is used as given. `usePrototypeArtifactHref` returns the URL for a path when you need the string, and `useIsPrototypeArtifact` tells whether a path is the file being shown. These are available in rendered views and their embeds. Source paths remain subject to the existing literal-path repair; do not construct them dynamically if automatic repair is needed.
+Navigate with the public `@module/prototypes` library, never by importing TanStack Router. `Link` (`<Link to="app/main">`) and `useNavigate` (`const navigate = useNavigate(); navigate('app/main')`) take a prototype-relative path such as `app/main` and go to its permanent URL; a target that starts with `/` is used as given. `usePrototypeArtifactHref` returns the URL for a path when you need the string, and `useIsPrototypeArtifact` tells whether a path is the file being shown. These are available in rendered views and their embeds. Source paths remain subject to the existing literal-path repair; do not construct them dynamically if automatic repair is needed. A `Link` whose path does not resolve renders inert in place, outlined in development, and the console names the path; the rest of the view still renders.
 
 ## Duplication and system rebuilds
 
@@ -115,6 +115,10 @@ Individual artifacts and folders have no separate archival status. Organizing th
 
 `src/platform/core/archive.ts` defines exclusion, and the manifest and production globs apply it. The [archiving rule](skills/organize-prototype/SKILL.md) owns the agent's choice and verification workflow.
 
+## Download
+
+Locally, **Download** in a prototype's **…** menu, or `pnpm studio download <prototype folder>` for agents, saves it as one HTML file that opens in a browser without Studio, for someone who can't reach a published site. `node/download.js` runs the production build with only that prototype (`STUDIO_DOWNLOAD`, applied by `forDeploy` in `src/platform/core/archive.ts`) and folds the script, styles, and manifest into the page. The app finds the embedded manifest (`src/platform/app/data/downloaded.ts`), so it uses hash URLs, opens on the prototype, and leaves out the rail, Copy link, and the system link. Views, documents, diagrams and canvases render through the same viewer as the published site. Files a prototype fetches at run time, such as from `public/`, are not included.
+
 ## Validation
 
 Module checks enforce runtime dependency boundaries through `src/platform/node/lib/scope.js` and validate prototype styles. Manifest checks validate metadata and artifact structure. These checks do not enforce every agent operating instruction.
@@ -131,9 +135,10 @@ The Prototypes module: the gallery at `/prototypes`, and the viewer every protot
 
 - `module.ts`, `app.tsx`: who it is, its rail button, the `/prototypes` route, its front-page block, and its palette entries. A prototype opens through the platform's artifact routes (`src/platform/app/router.tsx`).
 - `gallery/`: the gallery, a prototype's card, and the New prototype dialog (browser).
-- `viewer/`: a prototype's layout, navigation and file tree, its menus and dialogs (browser). Source editing uses the [shared platform editor](../../context/source.md).
+- `viewer/`: a prototype's layout, navigation and file tree, its menus and dialogs (browser). Source editing uses the [shared platform editor](../../context/maintainers/source.md).
 - `src/platform/app/source/ArtifactSource.tsx`: adapts prototype and system context access to the shared editor.
 - `node/create.js`: `pnpm new`, and what the New prototype button runs (Node).
+- `node/download.js`: a prototype as one HTML file, for **Download** (Node).
 
 Agent contract: `src/platform/modules/prototypes/skills/build-prototype/SKILL.md`.
 

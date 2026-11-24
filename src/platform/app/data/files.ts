@@ -85,6 +85,21 @@ export function openInEditor(p: PrototypeInfo, file: string) {
   return openRepositoryFile(repoPath(p, file));
 }
 
+// Builds the prototype into one HTML file someone can open without Studio, and saves it (prototypes/node/download.js).
+export async function downloadPrototype(p: PrototypeInfo) {
+  const res = await fetch('/__studio/prototype-download', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ contributor: p.contributorKey, prototype: p.id }),
+  });
+  if (!res.ok) throw new Error((await res.json()).error ?? "Couldn't download this prototype.");
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(await res.blob());
+  link.download = `${p.id}.html`;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(link.href), 0);
+}
+
 // Shows a file in Finder (or your system's file browser).
 export async function revealInFinder(p: PrototypeInfo, file: string) {
   try {
@@ -232,7 +247,9 @@ export async function writeSource(p: PrototypeInfo, path: string, content: strin
       body: JSON.stringify({ contributor: p.contributorKey, prototype: p.id, path, content, base }),
     });
   } catch (error) {
-    if (error instanceof ClientError && error.status === 409) throw new SourceChanged(error.message);
+    // Only a newer version on disk is a conflict; any other refusal (like removing the studio ID) is said as an error.
+    if (error instanceof ClientError && error.status === 409 && error.code === 'changed')
+      throw new SourceChanged(error.message);
     throw error;
   }
 }

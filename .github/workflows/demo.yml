@@ -29,7 +29,7 @@ jobs:
           GH_TOKEN: ${{ secrets.WEBSITE_DEPLOY_TOKEN }}
         run: |
           if [ -z "$GH_TOKEN" ]; then
-            echo "::error::Set WEBSITE_DEPLOY_TOKEN to a fine-grained token with Actions read/write access to itspatmorgan/itspatmorgan.github.io. See CONTRIBUTING.md."
+            echo "::error::Set WEBSITE_DEPLOY_TOKEN to a fine-grained token with Actions read/write access to itspatmorgan/itspatmorgan.com. See src/platform/context/maintainers/releasing.md."
             exit 1
           fi
-          gh api --method POST repos/itspatmorgan/itspatmorgan.github.io/actions/workflows/deploy.yml/dispatches -f ref=main
+          gh api --method POST repos/itspatmorgan/itspatmorgan.com/actions/workflows/deploy.yml/dispatches -f ref=main

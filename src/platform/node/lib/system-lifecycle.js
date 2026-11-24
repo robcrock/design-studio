@@ -110,7 +110,9 @@ export function planSystemLifecycle(root, config, action, id, { name, restorePro
           !/\.(?:[cm]?[jt]sx?|md|css|json|excalidraw)$/.test(relative) ||
           ['package-lock.json', 'pnpm-lock.yaml', 'studio.lock.json'].includes(relative) ||
           relative.startsWith('public/') ||
-          relative.startsWith('dist/')
+          relative.startsWith('dist/') ||
+          // Upstream-owned platform files never change with a team's systems, so updates stay clean.
+          relative.startsWith('src/platform/')
         )
           continue;
         const absolute = path.join(root, relative),

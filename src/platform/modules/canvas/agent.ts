@@ -10,8 +10,8 @@ import { inspectArtifact } from '#studio/data';
 //   c.describe({ scope: 'selection' })
 //   await c.create({ elements: [{ type: 'note', text: 'Check this', color: 'pink' }] })
 //   c.point({ ids: [id] })          select it and scroll to it, so the person sees which one you mean
-import { CaptureUpdateAction, exportToBlob, restoreElements } from '@excalidraw/excalidraw';
-import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
+import { CaptureUpdateAction, exportScene, getCommonBounds, restoreElements } from '@excalidraw/excalidraw';
+import type { ExcalidrawElement, NonDeletedExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import type { ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
 import { artifactLabel } from '@/platform/app/data/manifest';
 import type { Artifact, Manifest, Prototype } from '@/platform/app/data/types';
@@ -33,6 +33,22 @@ export type CanvasAgentOptions = {
 };
 
 export function createCanvasAgent({ api, proto, item, manifest, editable, persist }: CanvasAgentOptions) {
+  // Brings elements into view with a margin, never zooming in: a small thing is centered at the
+  // current zoom, a big one fits `share` of the view.
+  const show = (els: readonly ExcalidrawElement[], share: number) => {
+    const [x1, y1, x2, y2] = getCommonBounds(els);
+    const { width, height, zoom } = api.getAppState();
+    const w = x2 - x1;
+    const h = y2 - y1;
+    const fits = w * zoom.value <= width * share && h * zoom.value <= height * share;
+    const margin = (1 / share - 1) / 2;
+    api.setViewport({
+      target: { x: x1 - w * margin, y: y1 - h * margin, width: w / share, height: h / share },
+      fit: fits ? 'none' : 'scale-down',
+      animation: true,
+    });
+  };
+
   const base = `${import.meta.env.BASE_URL.replace(/\/$/, '')}`;
   const origin = window.location.origin;
   const file = `src/prototypes/${proto.contributorKey}/${proto.id}/${item.path}`;
@@ -51,6 +67,7 @@ export function createCanvasAgent({ api, proto, item, manifest, editable, persis
         type,
         typeLabel: resolution.typeLabel,
         preview: resolution.preview.available,
+        ...(resolution.screens && { screens: resolution.screens }),
       };
     },
     artifacts() {
@@ -128,13 +145,7 @@ export function createCanvasAgent({ api, proto, item, manifest, editable, persis
       const made = (result as { created?: string[] }).created;
       if (made?.length) {
         const fresh = api.getSceneElements().filter(el => made.includes(el.id));
-        if (fresh.length && !fresh.some(el => inView(el as unknown as El)))
-          api.scrollToContent(fresh, {
-            fitToViewport: true,
-            viewportZoomFactor: 0.9,
-            maxZoom: api.getAppState().zoom.value,
-            animate: true,
-          });
+        if (fresh.length && !fresh.some(el => inView(el as unknown as El))) show(fresh, 0.9);
       }
     }
     return result;
@@ -163,6 +174,11 @@ export function createCanvasAgent({ api, proto, item, manifest, editable, persis
     update: (args: unknown) => call('update', args),
     move: (args: unknown) => call('move', args),
     delete: (args: unknown) => call('delete', args),
+    async mermaid(args: { source?: unknown } = {}) {
+      // Loaded when first used: the converter is large, and most canvases never need it.
+      const { layoutMermaid } = await import('./mermaid');
+      return call('mermaid', { ...args, diagram: await layoutMermaid(args.source) });
+    },
 
     point(args: { ids?: string[] }) {
       const ids = args?.ids;
@@ -176,13 +192,7 @@ export function createCanvasAgent({ api, proto, item, manifest, editable, persis
         appState: { selectedElementIds: Object.fromEntries(ids.map(id => [id, true])) },
         captureUpdate: CaptureUpdateAction.NEVER,
       });
-      // Never zooms in: a small thing is centered, a big one fits.
-      api.scrollToContent(els as unknown as ExcalidrawElement[], {
-        fitToViewport: true,
-        viewportZoomFactor: 0.8,
-        maxZoom: api.getAppState().zoom.value,
-        animate: true,
-      });
+      show(els as unknown as ExcalidrawElement[], 0.8);
       return { ok: true, pointed: ids };
     },
 
@@ -195,13 +205,17 @@ export function createCanvasAgent({ api, proto, item, manifest, editable, persis
             el =>
               pick.has(el.id) || (el.frameId && pick.has(el.frameId)) || (el.containerId && pick.has(el.containerId)),
           )
-        : all) as unknown as ExcalidrawElement[];
-      const blob = await exportToBlob({
-        elements,
-        appState: { ...api.getAppState(), exportBackground: true, exportScale },
-        files: api.getFiles(),
-        mimeType: 'image/png',
-        exportPadding: 40,
+        : all) as unknown as NonDeletedExcalidrawElement[];
+      const state = api.getAppState();
+      const blob = await exportScene({
+        data: { elements, files: api.getFiles() },
+        type: 'png',
+        config: {
+          theme: state.theme,
+          canvasBackgroundColor: state.viewBackgroundColor,
+          scale: exportScale,
+          padding: 40,
+        },
       });
       return new Promise<string>((resolve, reject) => {
         const reader = new FileReader();

@@ -7,7 +7,8 @@ import { canvasIdentity } from './identity.ts';
 //   this file. A canvas shows the view itself instead.
 // - Fields at Excalidraw's default are dropped; `restoreElements` fills them back in on load.
 //   `version`, `versionNonce` and `index` are kept: merging changes needs them.
-// - Numbers are rounded, keys are sorted, and volatile fields (`updated`) are dropped.
+// - Numbers are rounded, keys are sorted, and volatile fields (`updated`) are dropped. `created` is
+//   kept only on sticky notes, which show it as their date.
 // - A link to an item is stored as its address in the app ("/samples/hello-world/lofi/main"),
 //   so a canvas works on any host and under any base path.
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';

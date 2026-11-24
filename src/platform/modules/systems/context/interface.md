@@ -26,7 +26,7 @@ Libraries opens `/systems/<system-id>/libraries` in Studio’s appearance. Its c
 
 ## Source editing
 
-Systems uses the [shared platform source workflow](../../../context/source.md). Right-click a navigation item for file actions, or use **⌘' / Ctrl+'** to toggle source. **⌘S / Ctrl+S** saves; the toggle or **Done** returns to rendering with unsaved-change protection. Source editors remain in Studio's color mode.
+Systems uses the [shared platform source workflow](../../../context/maintainers/source.md). Right-click a navigation item for file actions, or use **⌘' / Ctrl+'** to toggle source. **⌘S / Ctrl+S** saves; the toggle or **Done** returns to rendering with unsaved-change protection. Source editors remain in Studio's color mode.
 
 Component pages open their Page, Examples, and Component file tabs. Overview and Icons open the system's overview source (`intro.tsx`). A missing overview source opens `system.ts`. Generated theme pages open the system's theme CSS. There is no separate editable file for each token-family page.
 

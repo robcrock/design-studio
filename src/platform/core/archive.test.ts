@@ -27,6 +27,15 @@ test('a deploy leaves out an archived prototype whole', () => {
   assert.deepEqual(archived, ['/prototypes/samples/old/**']);
 });
 
+test('a download keeps only its prototype, archived or not', () => {
+  const { kept, archived } = forDeploy([proto('a'), proto('b', { status: 'archived' })], 'samples/b');
+  assert.deepEqual(
+    kept.map(p => p.id),
+    ['b'],
+  );
+  assert.deepEqual(archived, ['/prototypes/samples/a/**']);
+});
+
 test('a canvas link into an archived prototype is found, but not into one with a longer name', () => {
   const canvas = '{"link":"http://localhost:5173/samples/old/lofi/main"}';
   assert.deepEqual(linksToArchived(canvas, ['/samples/old']), ['/samples/old']);

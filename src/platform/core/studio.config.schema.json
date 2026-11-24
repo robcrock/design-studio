@@ -4,7 +4,16 @@
   "description": "studio.config.json: the small set of choices a studio's team shares. Start personal; switch to team use in Studio settings when you are ready to collaborate. Installed capabilities (modules) and design-system registration are explicit, never inferred from what is on disk. The rules that matter are enforced by `pnpm check` (src/platform/core/config.ts); this schema lets editors validate and complete the file, and a test keeps the two in agreement.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["formatVersion", "name", "usage", "modules", "systems", "systemMaintainers", "defaultSystem"],
+  "required": [
+    "formatVersion",
+    "name",
+    "usage",
+    "modules",
+    "systems",
+    "systemMaintainers",
+    "defaultSystem",
+    "assetLimitKB"
+  ],
   "properties": {
     "$schema": {
       "type": "string",
@@ -58,6 +67,11 @@
       "uniqueItems": true,
       "items": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
       "description": "Admins, as the permanent IDs of registered contributors. Required and nonempty in team use, where saving cannot remove the last Admin; optional in personal use, where the local contributor is Admin automatically. Several Admins are supported. Assign them in Studio settings or with `pnpm studio configure --admins`."
+    },
+    "assetLimitKB": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "description": "Required. The largest file, in KB, that a commit may add or change; Asset Guard blocks larger ones at commit and in CI. New studios declare 750. Admins can change it in Studio settings. Track big media such as video with Git LFS instead of raising it; see src/platform/context/assets.md#large-files."
     }
   },
   "if": {

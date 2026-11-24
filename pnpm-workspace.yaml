@@ -13,8 +13,13 @@ patchedDependencies:
   # Excalidraw draws a link icon on every element with a `link`, and a canvas needs `link`
   # (it's the URL of the view it shows). The patch skips the icon, and its hover tooltip and
   # click target, when `customData.hideLinkIcon` is set, which every view on a canvas has (its
-  # title bar already opens the view), and it keeps Excalidraw on its desktop layout at any width.
-  # See patches/README.md before upgrading Excalidraw.
-  '@excalidraw/excalidraw@0.18.1': patches/@excalidraw__excalidraw@0.18.1.patch
-minimumReleaseAgeExclude:
-  - pele@1.8.0
+  # title bar already opens the view). See patches/README.md before upgrading Excalidraw.
+  '@excalidraw/excalidraw@0.18.0-3c916c5': patches/@excalidraw__excalidraw@0.18.0-3c916c5.patch
+# The Excalidraw build imports packages it doesn't declare; they resolve only when hoisted.
+packageExtensions:
+  '@excalidraw/excalidraw@0.18.0-3c916c5':
+    dependencies:
+      '@excalidraw/fractional-indexing': 0.18.0-3c916c5
+  '@excalidraw/common@0.18.0-3c916c5':
+    dependencies:
+      '@excalidraw/math': 0.18.0-3c916c5

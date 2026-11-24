@@ -23,12 +23,12 @@ The navigation uses the unboxed mark in [Logo.tsx](../../app/shell/Logo.tsx). Ex
 | Dark sharing placement and dark README | `public/images/design-studio-social-dark.png` | 1200 × 630 |
 | GitHub repository social preview | `public/images/design-studio-github.png` | 1280 × 640 |
 | Product screenshots | `public/images/design-studio-product-light.jpg` and `design-studio-product-dark.jpg` | 1280 × 720 |
-| Compressed sharing alternative | `public/images/design-studio-readme-share.jpg` | 1200 × 630 |
+| README header image | `public/images/design-studio-readme-share.jpg` | 1200 × 630 |
 
 The editable sharing artwork is [social-card.html](assets/brand/social-card.html). Open it from the repository with dependencies installed. It uses the local Geist font and the public logo tiles. Render at 1200 × 630, wait for fonts and images, and export the light and dark PNGs using the respective browser color schemes. Export the light render as a compressed JPEG when a smaller alternative is needed. The README selects the matching social card and product screenshot with `<picture>`, falling back to light. The default external sharing image stays light because link previews do not select artwork by the viewer's theme.
 
 For GitHub, fit the light social card into 1280 × 640 without cropping or stretching, using its background color for the remaining horizontal margin. Upload it through the repository's **Settings → General → Social preview**; changing the README does not update that setting.
 
-Product screenshots show the supplied Feedback Inbox sample with Studio navigation visible. Recapture the working inbox in both themes after relevant interface changes. Remove hover tooltips and open menus, wait for fonts and preview content, and keep the real interface intact. These screenshots are documentation and marketing assets, not per-prototype link previews.
+Product screenshots show the supplied Echo app sample with Studio navigation visible. Recapture the working inbox in both themes after relevant interface changes. Remove hover tooltips and open menus, wait for fonts and preview content, and keep the real interface intact. These screenshots are documentation and marketing assets, not per-prototype link previews.
 
 When changing the mark, update the navigation paths and public tile SVGs together, then regenerate the raster icons and sharing images. See [Publishing](../../context/publishing.md#social-link-previews) for the metadata and public URL setup.

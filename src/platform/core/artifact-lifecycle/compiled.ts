@@ -11,6 +11,7 @@ export function createCompiledTracker(
   publish: (state: ArtifactLifecycle) => void,
   isApplied: (snapshot: RevisionSnapshot) => boolean = applied,
   timeout = 15000,
+  interval = 250,
 ) {
   const lifecycle = createArtifactLifecycle(publish);
   let live = true;
@@ -19,9 +20,15 @@ export function createCompiledTracker(
   let failure: { detail: string; retained: boolean } | null = null;
   let paths = new Set<string>();
   let timer: ReturnType<typeof setTimeout> | undefined;
+  let retry: ReturnType<typeof setTimeout> | undefined;
+  const clearRetry = () => {
+    clearTimeout(retry);
+    retry = undefined;
+  };
   const clearDeadline = () => {
     clearTimeout(timer);
     timer = undefined;
+    clearRetry();
   };
   const check = async () => {
     if (!live) return;
@@ -42,9 +49,15 @@ export function createCompiledTracker(
         if (lifecycle.state.phase !== 'preparing' || !lifecycle.state.preparing) lifecycle.prepare(revision);
         timer ??= setTimeout(() => {
           timer = undefined;
+          clearRetry();
+          ++serial; // A read still in flight must not restart the deadline.
           if (live)
             lifecycle.unknown('The latest preview could not be verified. Repair the files or reload this view.');
         }, timeout);
+        // After a commit, a module the view loads lazily (an import() in an effect) records its
+        // compiled inputs later, with no further commit to announce it. Look again until the deadline.
+        clearRetry();
+        if (committed) retry = setTimeout(() => void check(), interval);
         return;
       }
       failure = null;

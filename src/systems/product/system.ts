@@ -10,6 +10,7 @@ export default {
   themeClass: 'product-theme',
   styling: 'tailwind',
   colorModes: ['light', 'dark'],
+  screens: [{ name: 'Desktop', width: 1440 }],
   docs: 'warn',
   libraries: [
     {
@@ -37,7 +38,25 @@ export default {
       "id": "shadcn",
       "label": "shadcn/ui",
       "description": "Component source and styles",
-      "docs": "https://ui.shadcn.com/docs"
+      "docs": "https://ui.shadcn.com/docs",
+      "components": [
+        "avatar",
+        "badge",
+        "button",
+        "card",
+        "checkbox",
+        "dialog",
+        "dropdown-menu",
+        "input",
+        "label",
+        "select",
+        "separator",
+        "sheet",
+        "table",
+        "tabs",
+        "textarea",
+        "tooltip"
+      ]
     },
     {
       "kind": "package",
@@ -62,10 +81,21 @@ export default {
     {
       "kind": "package",
       "id": "font",
-      "label": "Space Grotesk",
-      "package": "@fontsource-variable/space-grotesk",
+      "label": "Geist",
+      "package": "@fontsource-variable/geist",
       "description": "System typeface",
-      "docs": "https://fontsource.org/fonts/space-grotesk",
+      "docs": "https://fontsource.org/fonts/geist",
+      "assets": [
+        "fonts"
+      ]
+    },
+    {
+      "kind": "package",
+      "id": "font-mono",
+      "label": "Geist Mono",
+      "package": "@fontsource-variable/geist-mono",
+      "description": "Monospace typeface for numbers, IDs, and code",
+      "docs": "https://fontsource.org/fonts/geist-mono",
       "assets": [
         "fonts"
       ]

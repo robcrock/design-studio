@@ -29,7 +29,7 @@ Declare the system’s meaningful building blocks in `system.ts`: curated source
 
 Each library declares `kind`, `id`, `label`, `description`, and an HTTPS `docs` link. A `package` library names a direct system dependency; its installed version comes from package resolution. A `source` library records curated code such as shadcn/ui without pretending that its CLI is a runtime dependency. A source may record an evidenced version.
 
-Optional `assets` lists fonts, icons, or images supplied by the library and connects its card to those pages. Optional `components` lists associated documented component slugs. Package libraries link to those examples from Libraries. Source and shared styling references retain the association for component Source blocks, without listing each use on Libraries. A package can additionally declare `entry`, a public runtime file under `libraries/`, when assigned prototypes need direct API access. Listing a library alone does not grant import access.
+Optional `assets` lists fonts, icons, or images supplied by the library and connects its card to those pages. Optional `components` lists associated documented component slugs. It is the only source of component credit: a ported or hand-written component is credited to a library only when that library lists it. Package libraries link to those examples from Libraries. Source and shared styling references retain the association for component Source blocks, without listing each use on Libraries. A package can additionally declare `entry`, a public runtime file under `libraries/`, when assigned prototypes need direct API access. Listing a library alone does not grant import access.
 
 ```ts
 libraries: [{

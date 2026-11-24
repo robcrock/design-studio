@@ -2,7 +2,7 @@
 
 Prototype documents are `.md` files rendered as plain Markdown, with optional frontmatter for title, description, and contents navigation. They do not execute JSX; raw HTML is displayed as text. The shared reader supplies GitHub-style Markdown, code highlighting, Mermaid fences, and same-prototype artifact embeds.
 
-This module owns prototype Markdown. System knowledge and the Manual retain independent Markdown support when it is disabled or removed. Source access follows prototype ownership and the [shared editor contract](../../context/source.md).
+This module owns prototype Markdown. System knowledge and the Manual retain independent Markdown support when it is disabled or removed. Source access follows prototype ownership and the [shared editor contract](../../context/maintainers/source.md).
 
 ## Implementation
 
@@ -16,6 +16,6 @@ This optional module owns prototype Markdown. Follow the [manage-modules skill](
 
 Agent contract: `src/platform/modules/document/skills/write-document/SKILL.md`.
 
-Page loading follows the [shared navigation handoff](../../context/source.md#navigation-handoff). Route loaders prepare the reader and content before replacing the current page.
+Page loading follows the [shared navigation handoff](../../context/maintainers/source.md#navigation-handoff). Route loaders prepare the reader and content before replacing the current page.
 
-File-backed Markdown readers use the [shared lifecycle contract](../../context/source.md#artifact-revision-and-preview-lifecycle). Local compiled inputs and a DOM commit acknowledge the document revision. Nested diagrams and view embeds retain independent lifecycles. Content updates preserve document scroll; unknown revision evidence does not prevent reading.
+File-backed Markdown readers use the [shared lifecycle contract](../../context/maintainers/source.md#artifact-revision-and-preview-lifecycle). Local compiled inputs and a DOM commit acknowledge the document revision. Nested diagrams and view embeds retain independent lifecycles. Content updates preserve document scroll; unknown revision evidence does not prevent reading.

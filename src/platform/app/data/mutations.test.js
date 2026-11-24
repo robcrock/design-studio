@@ -82,10 +82,24 @@ test('failed or malformed replies cannot replace the current inventory; source c
     await assert.rejects(client.createPrototype('Fails', null));
     assert.equal(await client.loadManifest(), before);
   }
-  t.mock.method(globalThis, 'fetch', async () => new Response('{"error":"Stale source"}', { status: 409 }));
+  t.mock.method(
+    globalThis,
+    'fetch',
+    async () => new Response('{"error":"Stale source","code":"changed"}', { status: 409 }),
+  );
   await assert.rejects(
     client.writeSource(proto, 'new.tsx', 'new', 'old'),
     error => error instanceof client.SourceChanged && error.code === 'source_changed' && error.status === 409,
+  );
+  // Removing the studio ID is refused with its own message, not treated as a newer version on disk.
+  t.mock.method(
+    globalThis,
+    'fetch',
+    async () => new Response('{"error":"Keep the ID","code":"identity"}', { status: 409 }),
+  );
+  await assert.rejects(
+    client.writeSource(proto, 'new.tsx', 'new', 'old'),
+    error => !(error instanceof client.SourceChanged) && error.message === 'Keep the ID',
   );
   assert.equal(refreshes, 0);
 });

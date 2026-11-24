@@ -6,6 +6,8 @@ Hosting is optional. You can create prototypes locally and collaborate through G
 
 Publish when people need a shared viewing URL. The studio maintainer chooses the host, access requirements, and release process.
 
+To share one prototype without hosting, use **Download** in its **…** menu: it saves the prototype as one HTML file that opens from disk ([Download](../modules/prototypes/README.md#download)).
+
 ## What the build provides
 
 Use the toolchain declared in `mise.toml` and `package.json`. Run `pnpm install --frozen-lockfile`, then `pnpm build`. This validates the manifest, module boundaries, types, and production compilation and writes a static site to `dist/`. Tests are separate: `pnpm test` runs ordinary regressions; `pnpm build:release` also runs disposable production fixtures. The site includes active prototypes, design-system pages, the system context, and the Manual when enabled.
@@ -22,7 +24,7 @@ Interactive views still run in the browser. The published site does not provide 
 
 ## Choose a deployment process
 
-The platform provides a portable static build. Configure a publishing workflow for the chosen host. Document repository-specific deployment configuration in its maintainer guidance. This project’s configuration is in [Releasing](releasing.md#project-repository-publishing).
+The platform provides a portable static build. Configure a publishing workflow for the chosen host. Document repository-specific deployment configuration in its maintainer guidance. This project’s configuration is in [Releasing](maintainers/releasing.md#project-repository-publishing).
 
 For a host that serves the app below a URL prefix, pass that prefix through `STUDIO_BASE_PATH`. The build normalizes its trailing slash; local commands use `/` by default. For example:
 

@@ -49,7 +49,7 @@ export default function Diagram({ proto, item, source: initial, compact = false 
           {error}
         </p>
       ) : (
-        <MermaidDiagram source={source} compact={compact} fit />
+        <MermaidDiagram source={source} compact={compact} fit zoomable={!compact} />
       )}
     </div>
   );

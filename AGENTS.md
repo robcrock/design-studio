@@ -2,11 +2,29 @@
 
 # Design Studio
 
-Read [working context](src/platform/context/working-in-studio.md) at the start of each session. Before changing upstream-owned paths, read the relevant [ownership tiers](src/platform/context/ownership.md#tiers) and [path map](src/platform/context/ownership.md#path-map).
+Follow [Working in Studio](#working-in-studio) throughout each session. Before changing upstream-owned paths, read the relevant [ownership tiers](src/platform/context/ownership.md#tiers) and [path map](src/platform/context/ownership.md#path-map).
 
 Before editing an existing contributor-owned prototype, use `pnpm studio context src/prototypes/<key>/<id> --json` to resolve contributor scope, assignment, and pending rebuild. For creation or other content, resolve the contributor with `node src/platform/node/cli/resolve-contributor.js`. Explicit `systemId: null` means no system; missing assignments are invalid. The default is written explicitly at creation. Read the assigned system's `AGENTS.md` and relevant context. For a pending rebuild, read the target system too and preserve the original.
 
 Use the [platform README](src/platform/README.md) as an index when locating shared context, skills, or implementation. For platform product or architecture decisions, read [Principles](src/platform/context/principles.md) and [Personas](src/platform/context/personas.md). For Studio interface work, read [Studio instructions](src/platform/systems/studio/AGENTS.md).
+
+Use pnpm. Reuse unchanged instructions already read; read source before editing. Save verbose check output to a temporary log and report results and warnings concisely.
+
+The human Manual lives in `src/platform/modules/documentation/pages/`; technical requirements live in owner READMEs and context documents. Update affected guidance with platform behavior changes. For routing work, consult [TanStack Router](https://tanstack.com/router/latest/docs/framework/react/overview).
+
+## Working in Studio
+
+Read [Contributor scope](src/platform/context/contributor-scope.md) before changing prototype content or shared files. Existing task authorization covers necessary shared changes. Preserve user edits; do not reset, overwrite, or delete work to simplify a task.
+
+Honor enabled module declarations. A visible file or skill does not enable an unavailable capability. Use the owning module's technical contract before changing formats, dependencies, or lifecycle behavior. Product guidance cannot relax platform boundaries. When changing behavioral declarations or scaffolds, follow [explicit declaration](src/platform/context/principles.md#declare-what-the-system-provides): write defaults visibly and validate missing required fields.
+
+Choose checks with the [minimum sufficient verification policy](src/platform/context/maintainers/checks.md#minimum-sufficient-verification); repeat passed checks only when new changes or unresolved failures justify it. Run `pnpm build` before committing completed changes. Fix reported type, boundary, and asset errors rather than suppressing checks. Inspect rendered results for interface or prototype changes. When adding or changing static assets, follow the [asset convention and guard](src/platform/context/assets.md).
+
+A running dev server keeps up with changes on its own: it restarts after configuration, module, and system changes (including a `system.ts` edit), and gives views, documents, and canvases written as files their permanent identity as they appear. `pnpm canvas` does the same for its prototype and reads a fresh manifest. Without the dev server, run `pnpm studio identify <prototype folder> --yes` after creating files directly.
+
+Commit finished work with a concise message. Push only when requested. When you open a pull request, answer every section of the [pull request template](.github/pull_request_template.md). For interface changes, include before and after screenshots and a short recording of the changed flow, and link the pull request's Codespace so a reviewer can try editing without a local studio. Sharing and [publishing](src/platform/context/publishing.md) are separate actions.
+
+## Skills
 
 Skills are owned by the platform, enabled modules, and registered systems. Inspect their names and descriptions, then read applicable procedures and supporting files. The generated project skill adapters expose the same canonical sources to coding harnesses. A system skill applies only to that system's assigned prototypes or explicit system maintenance.
 
@@ -16,19 +34,16 @@ Skills are owned by the platform, enabled modules, and registered systems. Inspe
 - For READMEs, shared context, skills, Manual coordination, or guidance audits, use [maintain-documentation](src/platform/skills/maintain-documentation/SKILL.md).
 - For an explicit design-system review, use [check-design-system](src/platform/skills/check-design-system/SKILL.md).
 
-Use pnpm. Reuse unchanged instructions already read; read source before editing. Save verbose check output to a temporary log and report results and warnings concisely.
-
-The human Manual lives in `src/platform/modules/documentation/pages/`; technical requirements live in owner READMEs and context documents. Update affected guidance with platform behavior changes. For routing work, consult [TanStack Router](https://tanstack.com/router/latest/docs/framework/react/overview).
-
 <!-- studio:modules -->
 When the person asks for a canvas (a page of views, documents, and notes arranged together), read [src/platform/modules/canvas/skills/use-canvas/SKILL.md](src/platform/modules/canvas/skills/use-canvas/SKILL.md).
 When the person asks to assign or review team Admins, system maintainers, or contributor permissions, read [src/platform/modules/contributors/skills/use-contributors/SKILL.md](src/platform/modules/contributors/skills/use-contributors/SKILL.md).
 When the person asks for a standalone diagram inside a prototype, read [src/platform/modules/diagrams/skills/create-diagram/SKILL.md](src/platform/modules/diagrams/skills/create-diagram/SKILL.md).
+When the person asks to add, tune, save, or remove DialKit dials on a view, read [src/platform/modules/dialkit/skills/use-dialkit/SKILL.md](src/platform/modules/dialkit/skills/use-dialkit/SKILL.md).
 When the person asks for a document inside a prototype, read [src/platform/modules/document/skills/write-document/SKILL.md](src/platform/modules/document/skills/write-document/SKILL.md).
 When the person asks to add or change the human Manual, read [src/platform/modules/documentation/skills/write-manual/SKILL.md](src/platform/modules/documentation/skills/write-manual/SKILL.md).
 When the person asks for a first tour of the studio or help getting started after installation, read [src/platform/modules/onboarding/skills/use-onboarding/SKILL.md](src/platform/modules/onboarding/skills/use-onboarding/SKILL.md).
 When the person asks to create or edit interactive prototype views, read [src/platform/modules/prototypes/skills/build-prototype/SKILL.md](src/platform/modules/prototypes/skills/build-prototype/SKILL.md).
-When the person asks to rename, move, duplicate, archive, restore, or remove a prototype, read [src/platform/modules/prototypes/skills/organize-prototype/SKILL.md](src/platform/modules/prototypes/skills/organize-prototype/SKILL.md).
+When the person asks to rename, move, duplicate, archive, restore, download, or remove a prototype, read [src/platform/modules/prototypes/skills/organize-prototype/SKILL.md](src/platform/modules/prototypes/skills/organize-prototype/SKILL.md).
 When the person asks to curate, assess, import, replace, or adapt a design system, read [src/platform/modules/systems/skills/setup-design-system/SKILL.md](src/platform/modules/systems/skills/setup-design-system/SKILL.md).
 When the person asks to import or document a system component, read [src/platform/modules/systems/skills/document-component/SKILL.md](src/platform/modules/systems/skills/document-component/SKILL.md).
 <!-- /studio:modules -->

@@ -7,8 +7,20 @@ import { resourceId } from '../../core/fileTypes.ts';
 import { lineWidth, wrapText } from './elements.ts';
 import { run, ToolError, type Ctx, type El } from './tools.ts';
 
-const artifacts: Record<string, { title: string; type: string; typeLabel: string; preview: boolean }> = {
-  '/pat/demo/main': { title: 'Main', type: 'view', typeLabel: 'View', preview: true },
+const artifacts: Record<
+  string,
+  { title: string; type: string; typeLabel: string; preview: boolean; screens?: { name: string; width: number }[] }
+> = {
+  '/pat/demo/main': {
+    title: 'Main',
+    type: 'view',
+    typeLabel: 'View',
+    preview: true,
+    screens: [
+      { name: 'Desktop', width: 1440 },
+      { name: 'Phone', width: 390 },
+    ],
+  },
   '/pat/demo/notes': { title: 'Notes', type: 'document', typeLabel: 'Document', preview: false },
 };
 const ctx: Ctx = {
@@ -218,7 +230,7 @@ test('rightOf centers by default so arrows between different heights run straigh
   const at = (ref: string) => s.live().find(e => e.id === refs[ref])!;
   assert.equal(at('card').y, (338 - 88) / 2, 'centered on the view');
   assert.equal(at('top').y, 0, 'align: start lines up the tops');
-  assert.equal(at('under').x, at('card').x + (480 - 200) / 2, 'a note centered under a card');
+  assert.equal(at('under').x, at('card').x + (480 - 250) / 2, 'a note centered under a card');
   const arrow = s.live().find(e => e.type === 'arrow')!;
   assert.equal(arrow.points[1][1], 0, 'the arrow is straight');
   assert.throws(() => s.call('create', { type: 'note', text: 'x', below: '@card', align: 'left' }), /align must be/);
@@ -236,6 +248,19 @@ test('create warns when something lands on something else', () => {
   });
   assert.equal(second.warnings.length, 1);
   assert.match(second.warnings[0], /overlaps/);
+});
+
+test('create warns when a call repeats existing content, as a retried command would', () => {
+  const s = session();
+  const call = {
+    elements: [
+      { type: 'note', text: 'Same idea' },
+      { type: 'text', text: 'Heading' },
+    ],
+  };
+  assert.equal(s.call('create', call).warnings, undefined);
+  const again = s.call('create', call);
+  assert.ok(again.warnings.some((w: string) => /repeat existing ones.*delete the new copies/.test(w)));
 });
 
 test('artifacts lists what can go on the canvas, and a wrong name points at it', () => {
@@ -289,27 +314,34 @@ test('moving an artifact to another prototype is refused, and artifacts lists on
 const LONG =
   'A long note. This one has a lot more to say, because the agent was asked to explain a whole flow in a single sticky note, with reasons, edge cases, and a question at the end that nobody has answered yet. Does it fit?';
 
-test('a note stays square when its text fits, and grows taller when it does not', () => {
+test("a note is Excalidraw's sticky note: square when its text fits, a smaller font and then taller when not", () => {
   const s = session();
   s.call('create', {
     elements: [
       { type: 'note', text: 'Short' },
       { type: 'note', text: LONG },
+      { type: 'note', text: `${LONG} ${LONG} ${LONG}` },
     ],
   });
-  const [short, long] = s.live().filter(el => el.type === 'rectangle');
-  assert.equal(short.height, 200);
-  assert.ok(long.height > 200, `a long note is taller (${long.height})`);
-  // Its text fits inside it, with the note's padding.
-  const label = s.live().find(el => el.type === 'text' && el.containerId === long.id)!;
-  assert.ok(label.y + label.height <= long.y + long.height, 'the text ends inside the note');
+  const [short, long, longer] = s.live().filter(el => el.type === 'stickynote');
+  const labelOf = (note: El) => s.live().find(el => el.type === 'text' && el.containerId === note.id)!;
+  assert.equal(short.height, 250);
+  assert.equal(short.baseHeight, 250);
+  assert.equal(labelOf(short).fontSize, 20);
+  assert.equal(long.height, 250, 'a longer text first shrinks its font');
+  assert.ok(labelOf(long).fontSize < 20, `smaller font (${labelOf(long).fontSize})`);
+  assert.equal(labelOf(long).baseFontSize, 20, 'the font it shrinks from is kept');
+  assert.ok(longer.height > 250, `a much longer one is taller (${longer.height})`);
+  assert.equal(longer.baseHeight, 250);
+  const label = labelOf(longer);
+  assert.ok(label.y + label.height <= longer.y + longer.height, 'the text ends inside the note');
 });
 
 test('a note says so when it had to be taller than the height asked for', () => {
   const s = session();
   const out = s.call('create', { elements: [{ type: 'note', text: LONG, height: 120 }] });
   assert.match(out.warnings.join(' '), /made \d+ tall, not 120/);
-  assert.ok(s.live().find(el => el.type === 'rectangle')!.height > 120);
+  assert.ok(s.live().find(el => el.type === 'stickynote')!.height > 120);
 });
 
 test('wrapped text never runs wider than the box it wraps to', () => {
@@ -437,4 +469,74 @@ test('relative canvas authoring paths resolve to permanent links and remain scop
     () => run([], 'create', { type: 'artifact', artifact: '../other/main.tsx' }, identified),
     /no artifact at/,
   );
+});
+
+test('a view is shown at one of its screens: the first by default, another by name or width', () => {
+  const s = session();
+  const created = s.call('create', {
+    elements: [
+      { type: 'artifact', artifact: 'main', x: 0, y: 0, ref: 'desktop' },
+      { type: 'artifact', artifact: 'main', screen: 'phone', rightOf: '@desktop', ref: 'phone' },
+      { type: 'artifact', artifact: 'main', screen: 1024, rightOf: '@phone', ref: 'laptop' },
+    ],
+  });
+  const { refs } = created;
+  assert.ok(!created.warnings?.some((w: string) => /repeat/.test(w)), 'one view at several screens is not a repeat');
+  const at = (ref: string) => s.live().find(e => e.id === refs[ref])!;
+  assert.equal(
+    s
+      .call('create', { type: 'artifact', artifact: 'main', screen: 'Phone' })
+      .warnings?.some((w: string) => /repeat/.test(w)),
+    true,
+    'the same view at the same screen is a repeat',
+  );
+  assert.equal(at('desktop').customData.viewport, 1440, 'the default screen is written, never assumed');
+  assert.deepEqual([at('desktop').width, at('desktop').height], [480, 338]);
+  assert.equal(at('phone').customData.viewport, 390);
+  assert.deepEqual([at('phone').width, at('phone').height], [130, 338], 'one scale for every screen');
+  assert.equal(at('laptop').customData.viewport, 1024);
+  s.call('update', { id: refs.desktop, screen: 'Phone', height: 319 });
+  assert.equal(at('desktop').customData.viewport, 390);
+  assert.equal(at('desktop').customData.frame, true, 'its other custom data stays');
+  assert.deepEqual([at('desktop').width, at('desktop').height], [130, 319]);
+  const described = s.call('describe', {}).elements.filter((e: { screen?: unknown }) => 'screen' in e);
+  assert.deepEqual(
+    described.map((e: { screen: unknown }) => e.screen),
+    ['Phone', 'Phone', 1024, 'Phone'],
+  );
+  assert.throws(() => s.call('create', { type: 'artifact', artifact: 'main', screen: 'Watch' }), /screen should be/);
+  assert.throws(() => s.call('create', { type: 'artifact', artifact: 'notes', screen: 'Phone' }), /applies to views/);
+  assert.throws(() => s.call('update', { id: refs.desktop, screen: 50 }), /screen should be/);
+});
+
+test('the canvas check asks every view to say which screen it is shown at', async () => {
+  const { default: canvasType } = await import('./type.ts');
+  const prototype = {
+    contributor: 'pat',
+    id: 'demo',
+    studioId: '3456789abcdefghj',
+    artifacts: [
+      { studioId: 'abcdefghjkmnpqrs', systemUsage: 'assigned' as const },
+      { studioId: 'bcdefghjkmnpqrst', systemUsage: 'independent' as const },
+    ],
+  };
+  const source = (viewport?: number) =>
+    JSON.stringify({
+      type: 'excalidraw',
+      elements: [
+        {
+          type: 'embeddable',
+          link: '/prototypes/3456789abcdefghj/artifacts/abcdefghjkmnpqrs',
+          customData: { viewport },
+        },
+        { type: 'embeddable', link: '/prototypes/3456789abcdefghj/artifacts/bcdefghjkmnpqrst' },
+      ],
+      files: {},
+    });
+  assert.match(canvasType.check!({ source: source(), frontmatter: null, prototype }).join(' '), /1 view doesn't say/);
+  assert.match(
+    canvasType.check!({ source: source(100), frontmatter: null, prototype }).join(' '),
+    /1 view doesn't say/,
+  );
+  assert.deepEqual(canvasType.check!({ source: source(390), frontmatter: null, prototype }), []);
 });

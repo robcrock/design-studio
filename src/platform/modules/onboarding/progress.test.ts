@@ -166,6 +166,14 @@ test('effect replay shares one claim and returning after display cannot reopen i
   assert.equal(calls, 1);
 });
 
+test("an automated browser neither claims nor opens the person's Welcome", async t => {
+  const fetch = t.mock.method(globalThis, 'fetch', async () => new Response(JSON.stringify({ show: true })));
+  const key = progressKey('/automated/', 'newcomer');
+  assert.equal(await claimIntroduction(key, true, true), false);
+  assert.equal(fetch.mock.callCount(), 0);
+  assert.equal(await claimIntroduction(key, true, false), true);
+});
+
 test('unregistered claims use browser fallback while registered claims use profile state', async t => {
   t.mock.method(globalThis, 'fetch', async () => new Response(JSON.stringify({ show: null })));
   const key = progressKey('/unregistered-fallback/');

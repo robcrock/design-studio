@@ -78,12 +78,14 @@ export async function themeUsageProblems(systems, filesBySystem) {
     ).processSync(rule.selector);
   });
   const problems = [];
+  const gaps = new Map();
   for (const { system, file, candidates } of requests)
     for (const candidate of candidates) {
       const refs = new Set(dependencies.get(candidate));
       for (const part of candidate.split(':').slice(0, -1))
         if (tokens.has('--breakpoint-' + part)) refs.add('--breakpoint-' + part);
       const missing = [...refs].filter(n => !system.inventory.base.has(n));
+      for (const n of missing) gaps.set(system, (gaps.get(system) ?? new Set()).add(n));
       if (missing.length)
         problems.push(
           path.relative(process.cwd(), file) +
@@ -96,5 +98,15 @@ export async function themeUsageProblems(systems, filesBySystem) {
             "'s declared inventory.",
         );
     }
+  // One list per system, so a port decides its whole token gap at once instead of check by check.
+  for (const [system, missing] of gaps)
+    problems.push(
+      `${system.themeClass} is missing ${missing.size} token(s) in all: ` +
+        [...missing]
+          .sort()
+          .map(n => (defaultTokens.has(n) ? `${n} (Tailwind default ${defaultTokens.get(n).value})` : n))
+          .join(', ') +
+        '.',
+    );
   return problems;
 }

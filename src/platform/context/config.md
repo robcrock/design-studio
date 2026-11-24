@@ -28,7 +28,7 @@ Use `pnpm studio configure --system <id>` to preview a default-system change. Ap
 
 Every prototype must declare `systemId`, including `null` for no system. Missing assignments fail validation. Migrating an existing prototype requires changing its component imports and explicit assignment together.
 
-For manually edited module configuration, run `pnpm studio sync` to refresh agent task routes. Restart the dev server after CLI configuration changes. Coordinate shared configuration changes with your Admin.
+For manually edited module configuration, run `pnpm studio sync` to refresh agent task routes. Coordinate shared configuration changes with your Admin.
 
 ## Local roles and contributors
 
@@ -40,13 +40,13 @@ Use `pnpm studio configure --admins sam,alex --yes` to assign team Admins. Appli
 
 Keep shared choices in `studio.config.json`. Contributor profiles live in `contributors/<key>.json`; `pnpm join` creates these files. Each file declares one contributor, with a permanent `studioId` and its filename as the current source key. There is no combined roster file. Profiles declare `formatVersion` (`2`), a permanent `studioId`, a nonempty `name`, plus `email` and `github` strings. An empty string explicitly means that identity is unavailable. Nonempty emails and GitHub usernames must be unique, ignoring case. When Onboarding is enabled, profiles also declare `preferences.onboarding.welcomeDismissed`. The shipped sample author's profile also declares `"sample": true`, the only way code recognizes it; the field must be `true` when present, and real contributors omit it. Other preference fields stay with the profile. Profiles do not declare authority. Use `pnpm studio configure --maintainers product=sam,alex --yes` to assign one system. Use `product=` to clear it. The command preserves other system assignments.
 
-CLI and settings controls use current readable source keys for selection. Managed saves serialize relationships as permanent IDs. The `systems` registration list describes source locations; it is intentionally separate from `defaultSystem`, Admin IDs, and maintainer grants. Unknown IDs are errors. See [Resource identity](resource-identity.md).
+CLI and settings controls use current readable source keys for selection. Managed saves serialize relationships as permanent IDs. The `systems` registration list describes source locations; it is intentionally separate from `defaultSystem`, Admin IDs, and maintainer grants. Unknown IDs are errors. See [Resource identity](maintainers/resource-identity.md).
 
 Profiles may declare `avatar`, a relative image path inside `public/`, such as `images/person.svg`. Supported extensions are SVG, PNG, JPEG, and WebP. Path segments use letters, numbers, underscores, and dashes; absolute paths, remote URLs, and traversal are rejected. The referenced file must exist. Gallery cards prefer this image over a GitHub photo.
 
 The starter's fictional Parker Moss profile owns the shipped examples and declares `sample: true`. New users register their own identity with `pnpm join`; the sample profile is not their registration. The starter has no Admin or system maintainer grants. In personal mode, the registered local contributor has Admin access without adding a grant to shared configuration.
 
-Upstream maintainers may keep a real profile and prototype folder excluded through `.git/info/exclude`. These ordinary local files are read by Studio but are absent from commits and clones. Exclusions are specific to the maintainer's checkout; installed team studios can commit their real contributor roster normally. Release and public-demo source checks enforce the [starter distribution policy](releasing.md#maintainer-workspace-and-distributed-source).
+Upstream maintainers may keep a real profile and prototype folder excluded through `.git/info/exclude`. These ordinary local files are read by Studio but are absent from commits and clones. Exclusions are specific to the maintainer's checkout; installed team studios can commit their real contributor roster normally. Release and public-demo source checks enforce the [starter distribution policy](maintainers/releasing.md#maintainer-workspace-and-distributed-source).
 
 ## Configuration fields
 
@@ -62,6 +62,7 @@ Upstream maintainers may keep a real profile and prototype folder excluded throu
 | `modules` | Installed module IDs set to `true` or `false`. Every installed module needs an explicit entry; omission is invalid and never enables it. Required modules cannot be disabled. |
 | `systems` | Required list of the source-folder keys of the team's own design systems, such as `["product"]`. Every installed prototype system must be listed; discovery does not register a system. Studio's own system, the platform system, is always available and is never listed: listing it is a validation error. |
 | `defaultSystem` | System selected when creating a prototype without a different requested choice. Required permanent registered prototype-system ID; no alphabetical fallback. |
+| `assetLimitKB` | Required. The largest file, in KB, a commit may add or change (750 in a new studio). Files tracked by Git LFS pass at any size. See [Asset Guard](assets.md#asset-guard). |
 
 Other settings are errors, so a misspelled name is reported instead of ignored.
 

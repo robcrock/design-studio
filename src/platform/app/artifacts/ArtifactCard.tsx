@@ -28,7 +28,9 @@ export default function ArtifactCard({
   const found = proto && item;
   const reason = message;
   return (
+    // A frame like EmbedFrame's, so on a canvas its Open link takes the click (canvas.css) and the rest moves the canvas.
     <div
+      data-canvas-frame=''
       style={{ minHeight: ITEM_CARD_HEIGHT }}
       className={cn(
         'flex h-full w-full items-center gap-3 overflow-hidden rounded-xl border border-border bg-background px-4 text-left',

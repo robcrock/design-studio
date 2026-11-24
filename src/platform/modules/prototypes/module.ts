@@ -11,7 +11,7 @@ export default {
     { path: 'skills/build-prototype/', when: 'asks to create or edit interactive prototype views' },
     {
       path: 'skills/organize-prototype/',
-      when: 'asks to rename, move, duplicate, archive, restore, or remove a prototype',
+      when: 'asks to rename, move, duplicate, archive, restore, download, or remove a prototype',
     },
   ],
   id: 'prototypes',

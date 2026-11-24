@@ -18,10 +18,9 @@ Read the relevant [module contract](../../context/modules.md) sections for capab
 - Install external source through reviewed repository edits following the [installation contract](../../context/modules.md#installation-contract). Preserve allocated system identities and existing work. Use local scaffolds and existing pnpm commands; do not recreate a package installer.
 - Do not manually edit generated `AGENTS.md`; synchronize after capability changes.
 - Do not bypass required-module constraints or unresolved dependencies with `--force`.
-- Restart the dev server after CLI configuration, module installation, or system installation changes. Saving in local Studio settings restarts it automatically. Ordinary component edits update during development.
+- A running dev server restarts itself after configuration, module, or system changes, whether they come from the CLI, Studio settings, or a direct edit. Ordinary component edits update during development.
 - Use the configuration command to change the default system. Preserve existing prototypes until intentional migration.
 - Applied shared commands require an Admin. Assigned maintainers may use managed rename for their active systems. Use `configure --maintainers system=key,key --yes` for grants. Reserve `configure --recovery` for explicitly authorized setup or permission recovery.
-- Apply the [contributor scope](../../context/contributor-scope.md) to shared changes.
 
 Use `pnpm studio list` to inspect installed modules and `pnpm check` to validate their contracts.
 

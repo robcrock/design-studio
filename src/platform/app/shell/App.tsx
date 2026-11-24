@@ -5,6 +5,7 @@ import { TooltipProvider } from '@/platform/systems/studio/components/tooltip';
 import { Toaster } from '@/platform/systems/studio/components/toast';
 import { CommandPaletteProvider } from '@/platform/app/shell/CommandPalette';
 import { MODULES } from '@/platform/app/data/modules';
+import { downloaded } from '@/platform/app/data/downloaded';
 import {
   SectionNavContext,
   SectionNavPresenceContext,
@@ -24,10 +25,12 @@ export default function App() {
   const registerNav = useCallback((present: boolean) => setNavs(n => n + (present ? 1 : -1)), []);
   // A standalone item (a standalone section item, /examples/<id>) on the deployed site fills the window like an app: no rail,
   // no navigation. (Locally it keeps them, so you can still edit it.)
+  // A downloaded prototype has no rest of the studio to navigate to.
   const standaloneApp = useRouterState({
     select: s =>
-      !import.meta.env.DEV &&
-      MODULES.some(m => m.section?.standalone && s.location.pathname.startsWith(`/${m.section.key}/`)),
+      downloaded ||
+      (!import.meta.env.DEV &&
+        MODULES.some(m => m.section?.standalone && s.location.pathname.startsWith(`/${m.section.key}/`))),
   });
 
   return (

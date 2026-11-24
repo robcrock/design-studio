@@ -13,14 +13,14 @@ This skill applies to standalone prototype diagrams when Diagrams is enabled. Re
 - Include `accTitle` and `accDescr` where the diagram type supports them.
 - Keep prototype diagrams inside that prototype, outside underscore helpers. No registration is needed.
 - Use Mermaid fences inside documents when a diagram belongs with an explanation. Use a standalone file when it needs its own navigation entry or canvas preview.
+- A standalone diagram page opens fitted and people can zoom and pan it, so a large diagram stays readable. Do not split or simplify a diagram only because it looks small when fitted; split it when its parts tell separate stories. Document fences and canvas previews stay fitted, so a large diagram belongs in a standalone file.
 - Link to standalone diagrams using relative paths with their file extensions. In a prototype document, use `![Description](./flow.mermaid)` on its own line for a live embed with an Open diagram link. Keep the referenced file in the same prototype.
 - Reuse platform theme defaults. Apply explicit diagram colors only when they carry meaning, and check both light and dark modes.
 - To transfer a diagram to Excalidraw, use its existing Mermaid import. The imported canvas is a separate artifact; later source edits do not synchronize it.
-- Apply the [contributor scope](../../../../context/contributor-scope.md) before editing prototype files.
 
 Write the source directly. The local app discovers new files and reflects edits. Invalid syntax is shown as a render error. Inspect and repair it through the file menu’s Edit source action.
 
-For new directly authored artifacts, preview and apply [identity assignment](../../../../context/resource-identity.md#direct-authoring-and-verification). Preserve existing identity metadata when editing.
+For new directly authored artifacts, preview and apply [identity assignment](../../../../context/maintainers/resource-identity.md#direct-authoring-and-verification). Preserve existing identity metadata when editing.
 
 ## Verify
 

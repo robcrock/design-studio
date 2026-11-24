@@ -5,11 +5,11 @@ The platform connects prototypes, modules, and design systems. Start here to fin
 ## Context
 
 - [Principles](context/principles.md) and [Personas](context/personas.md): product direction and intended users.
-- [Working in Studio](context/working-in-studio.md) and [Contributor scope](context/contributor-scope.md): standing requirements for agent work and preserving ownership.
+- The Working in Studio section of `AGENTS.md` and [Contributor scope](context/contributor-scope.md): standing requirements for agent work and preserving ownership.
 - [Documentation standards](context/documentation-standards.md): writing, metadata, and verification.
 - [Agent context routing](context/agent-context.md): discovery and synchronization.
 
-All platform knowledge and requirements live together in `context/`:
+Platform knowledge and requirements live in `context/`:
 
 | Subject | Source |
 | --- | --- |
@@ -18,19 +18,25 @@ All platform knowledge and requirements live together in `context/`:
 | Ownership and updates | [Ownership and updates](context/ownership.md) |
 | Modules and extensions | [Modules and extensions](context/modules.md) |
 | File formats and lifecycle | [File types](context/file-types.md) |
-| Permanent resource identity | [Resource identity](context/resource-identity.md) |
 | Stored format versions | [Format versions](context/formats.md) |
-| Editing and saving | [Editing and saving](context/source.md) |
 | Assets and fonts | [Assets and fonts](context/assets.md) |
-| Validation and recovery | [Checks and fixes](context/checks.md) |
-| Cutting a release (maintainers) | [Releasing](context/releasing.md) |
 | Deployment | [Publishing](context/publishing.md) |
 | Shared diagram rendering | [Diagrams and code formatting](context/diagrams.md) |
 | Implementation dependencies | [Technology stack](context/stack.md) |
 
 ## Maintenance
 
-[Manual upgrades](context/ownership.md#updating-a-studio) and [release acceptance](context/releasing.md) use ordinary Git and the project checks.
+[Manual upgrades](context/ownership.md#updating-a-studio) and [release acceptance](context/maintainers/releasing.md) use ordinary Git and the project checks.
+
+Platform maintainers' contracts live in `context/maintainers/`. Read them when changing the platform itself, not for ordinary prototype or system work:
+
+| Subject | Source |
+| --- | --- |
+| Validation and recovery | [Checks and fixes](context/maintainers/checks.md) |
+| Permanent resource identity | [Resource identity](context/maintainers/resource-identity.md) |
+| Editing and saving | [Editing and saving](context/maintainers/source.md) |
+| Reviewing community contributions | [Community contributions](context/maintainers/community-contributions.md) |
+| Cutting a release | [Releasing](context/maintainers/releasing.md) |
 
 ## Skills
 

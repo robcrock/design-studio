@@ -108,6 +108,13 @@ test('the shared AST resolver finds aliases, root paths, exports and dynamic imp
     assert.equal(resolve('@custom/value', consumer), custom);
     write(root, 'src/lib/type-consumer.ts', "export type Value = import('@module/extra').Value;");
     assert.deepEqual(moduleConsumers(root, 'extra'), ['src/lib/consumer.ts', 'src/lib/type-consumer.ts']);
+    const linked = `${root}-link`;
+    fs.symlinkSync(root, linked);
+    try {
+      assert.deepEqual(moduleConsumers(linked, 'extra'), ['src/lib/consumer.ts', 'src/lib/type-consumer.ts']);
+    } finally {
+      fs.rmSync(linked);
+    }
     assert.deepEqual(
       importsOf("import type {A} from './types'; export {x} from './x'; import('./lazy'); import(choice)"),
       [
@@ -208,6 +215,7 @@ test('CSS validation contains exact selector targets, nested rules and imported 
       'body:has(.product-theme) {color:red}',
       '.product-theme-other {color:red}',
       '.product-theme + body {color:red}',
+      '.product-theme ~ .a .b {color:red}',
       '.product-theme { & ~ body {color:red} }',
       '@import "https://example.test/global.css";',
       '@keyframes pulse {from {opacity:0} to {opacity:1}}',
@@ -219,6 +227,8 @@ test('CSS validation contains exact selector targets, nested rules and imported 
       '.product-theme {color:red}',
       '.product-theme[data-color-mode="dark"] button {color:red}',
       '.product-theme { &:hover {color:red} .child {color:blue} }',
+      '.product-theme .a + .b, .product-theme > .a ~ .b {color:red}',
+      '.product-theme { .a + .b {color:red} }',
       '@media (width > 1px) {.product-theme {color:red}}',
       '@font-face {font-family:Example;src:url(example.woff2)}',
     ])
@@ -361,8 +371,9 @@ test('utility diagnostics distinguish omitted tokens from unrelated text', async
       inventory: themeInventory('.example-theme { --shadow-sm: 0 1px black; }', 'example-theme'),
     };
     const problems = await themeUsageProblems([system], () => [file]);
-    assert.equal(problems.length, 1);
+    assert.equal(problems.length, 2);
     assert.match(problems[0], /shadow-lg requires --shadow-lg/);
+    assert.match(problems[1], /missing 1 token\(s\) in all: --shadow-lg \(Tailwind default /);
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }

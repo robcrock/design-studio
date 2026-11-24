@@ -9,6 +9,7 @@ const product: SystemSpec = {
   role: 'prototype',
   styling: 'tailwind',
   colorModes: ['light', 'dark'],
+  screens: [{ name: 'Desktop', width: 1440 }],
   label: 'Product',
   themeClass: 'product-theme',
   docs: 'warn',
@@ -64,6 +65,21 @@ test('systems declare supported modes and safely resolve a global mode', () => {
   assert.deepEqual(systemProblems({ ...product, colorModes: ['dark'] }, 'product'), []);
 });
 
+test('a system declares the screens its designs are made for', () => {
+  const phone = { name: 'Phone', width: 390 };
+  assert.deepEqual(systemProblems({ ...product, screens: [phone, ...product.screens] }, 'product'), []);
+  for (const screens of [
+    [],
+    [phone, phone],
+    [{ ...phone, name: ' ' }],
+    [{ ...phone, width: 390.5 }],
+    [{ ...phone, width: 100 }],
+    [{ name: 'Phone' }],
+    'Phone',
+  ])
+    assert.match(systemProblems({ ...product, screens } as never, 'product').join(' '), /screens must/);
+});
+
 test('the application system is resolved by role, not its folder name', () => {
   const studio = { ...product, role: 'platform' as const, themeClass: 'studio-theme' };
   assert.deepEqual(systemProblems(studio, 'custom-studio'), []);
@@ -73,7 +89,7 @@ test('the application system is resolved by role, not its folder name', () => {
 });
 
 test('system policy fields cannot be inferred from omission', () => {
-  for (const field of ['status', 'role', 'styling', 'colorModes', 'docs', 'origin', 'libraries']) {
+  for (const field of ['status', 'role', 'styling', 'colorModes', 'screens', 'docs', 'origin', 'libraries']) {
     const spec = { ...product };
     delete (spec as Record<string, unknown>)[field];
     assert.ok(

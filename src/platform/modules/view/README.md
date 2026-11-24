@@ -28,7 +28,11 @@ Before stylesheets and modules load, a synchronous head bootstrap applies Studio
 
 A page runtime persists between views of the same prototype. It retains the outgoing screen, inert, while the next view loads. The next prepared view replaces it without a loading-label flash; slow handoffs show status after 200 ms. Retained output cannot acknowledge the incoming artifact. Child attributes distinguish displayed and pending identities. Changing prototype identity tears down the document and creates a new session. Color-mode updates preserve the runtime and component state. Source editing retains an already-open page runtime in a hidden, inert host container; HMR continues there. Directly opening source mode does not require a working preview.
 
-Embeds have their own child documents. They use a 1440px layout viewport, scale and crop to their supplied dimensions, exclude focus and pointer interaction, and set the child root inert. They cannot request host navigation or shortcuts. Invalid or zero dimensions do not mount a runtime.
+Embeds have their own child documents. They lay out at a screen width (`EmbedProps.viewport` from a canvas, otherwise the prototype's default screen, the first of its system's `screens`), scale and crop to their supplied dimensions, exclude focus and pointer interaction, and set the child root inert. They cannot request host navigation or shortcuts. Invalid or zero dimensions do not mount a runtime.
+
+### Still embeds
+
+An embed configured `still` holds its motion one second after it renders, so it stays on screen as a still picture and costs nothing while untouched. Views share Studio's main thread, and a few looping views otherwise keep a canvas busy every frame. `preview/still.ts` wraps the child window's animation frames and timers: while held, frame and timeout callbacks wait, interval ticks are skipped, and running animations and media pause. Configuring the embed as not still, a file or manifest change, or a hot update releases everything that waited, and a still embed holds again after it settles. The runtime schedules its own work with the native timers. Pages are never still. Canvas makes every view still except the one selected item; documents keep embeds moving.
 
 ## Communication and authority
 
@@ -36,7 +40,7 @@ Embeds have their own child documents. They use a 1440px layout viewport, scale 
 
 | Direction | Message | Purpose |
 | --- | --- | --- |
-| Host → child | configure | Explicit artifact target, public href, color mode, and immutable page/embed surface |
+| Host → child | configure | Explicit artifact target, public href, color mode, immutable page/embed surface, and whether an embed is still |
 | Child → host | hello | Same-session bootstrap/reload handshake; host supplies its current target |
 | Child → host | lifecycle | Source, preparation and displayed revisions; monotonic sequence and bounded lifecycle payload |
 | Child → host | status | Loading, successful render commit, or error; bounded detail and render-attempt counter |
@@ -47,7 +51,7 @@ Both sides validate sender window, exact origin, version, session, fresh child-d
 
 Targets use permanent prototype/artifact IDs when available, resolved against the current manifest. Registered section artifacts without IDs use explicit owner/path selectors. Source paths locate imports; they do not grant authority. There are no file-write, arbitrary execution, or inspection commands in this protocol.
 
-After validation, status emits a bubbling `studio:preview-state` event from the host boundary with `session`, `runtime`, `identity`, `surface`, `state`, and `render`. Boundary data attributes expose current state, identity, and session for native inspection. The separate lifecycle event and shared revision attributes support revision-aware inspection. The counter identifies runtime load attempts, **not** a source revision or a source-to-component map. Lifecycle reports follow the [artifact revision contract](../../context/source.md#artifact-revision-and-preview-lifecycle). Future protocol extensions must add explicit validation and retain independent write authorization.
+After validation, status emits a bubbling `studio:preview-state` event from the host boundary with `session`, `runtime`, `identity`, `surface`, `state`, and `render`. Boundary data attributes expose current state, identity, and session for native inspection. In the preview document, `data-preview-surface` (`page` or `embed`) and `data-preview-target` (the configured target as JSON) on the root element tell code running there where it is; DialKit reads them to show its panel only on pages. The separate lifecycle event and shared revision attributes support revision-aware inspection. The counter identifies runtime load attempts, **not** a source revision or a source-to-component map. Lifecycle reports follow the [artifact revision contract](../../context/maintainers/source.md#artifact-revision-and-preview-lifecycle). Future protocol extensions must add explicit validation and retain independent write authorization.
 
 The host supplies its public history address, including the deployment basepath. The child memory router supplies normal TanStack hooks to prototypes. Page navigation is handed to Studio so its history, artifact selection, source mode, and outer routes remain authoritative. Relative native links resolve against the displayed artifact address, including modified clicks. Hash anchors stay within the child document. External HTTP(S) links open separately. The direct runtime can navigate React artifacts independently and returns to Studio for other surfaces; crossing prototypes starts a fresh document. Direct-preview navigation supports browser Back/Forward. Public prototype navigation APIs remain unchanged.
 
@@ -87,8 +91,8 @@ Keep the [isolation limits](#isolation-limits) explicit. A failed opaque-origin 
 
 ## Revision evidence
 
-Page previews and inert embeds use the same lifecycle adapter. A renderer commit acknowledges source only when the compiled local inputs match the observed revision. Compilation failure can retain the previous preview, explicitly stale; render failure clears it. A bounded unverified update produces an actionable unknown state. Successful recovery clears the notice without forcing a document remount.
+Page previews and inert embeds use the same lifecycle adapter. A renderer commit acknowledges source only when the compiled local inputs match the observed revision. Compilation failure can retain the previous preview, explicitly stale; render failure clears it. A bounded unverified update produces an actionable unknown state. Modules a view loads after its commit (an `import()` in an effect) are acknowledged when they arrive; the tracker checks again until its deadline. A page preview shows the plain out-of-date notice only once it has lasted a second, so an ordinary save that applies at once never flashes it; errors and unverified updates show immediately. Successful recovery clears the notice without forcing a document remount.
 
-The [shared lifecycle contract](../../context/source.md#artifact-revision-and-preview-lifecycle) defines input coverage, static-preview limits, optional activity, message ordering, and state/lifetime policy. The status counter describes load attempts. It never stands in for source freshness. The child controller is also replaced when an identified artifact's source location changes.
+The [shared lifecycle contract](../../context/maintainers/source.md#artifact-revision-and-preview-lifecycle) defines input coverage, static-preview limits, optional activity, message ordering, and state/lifetime policy. The status counter describes load attempts. It never stands in for source freshness. The child controller is also replaced when an identified artifact's source location changes.
 
 View loads its assigned theme through the public [application system services](../../context/system-services.md). Its child preview entry remains supplied-only.

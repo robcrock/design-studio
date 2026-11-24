@@ -104,7 +104,9 @@ export function* sourceFiles(dir) {
   }
 }
 
-export function moduleConsumers(root, id) {
+export function moduleConsumers(studioRoot, id) {
+  // Resolved imports are real paths, so the folders they are compared with must be too.
+  const root = realFile(studioRoot);
   const dir = path.join(root, moduleDirOf(root, id));
   const resolve = dependencyResolver(root);
   return [...sourceFiles(path.join(root, 'src')), path.join(root, 'vite.config.ts')]

@@ -8,7 +8,7 @@ Design Studio lives in an ordinary folder on your computer. Install it once, the
 
 These are the installation steps for both you and your agent. If you want your agent to handle them, use a session that can create files and run commands on your computer and ask:
 
-> Install Design Studio from release v0.1.2 using https://github.com/itspatmorgan/design-studio/blob/v0.1.2/src/platform/context/installing.md. Use the repository installation guide without a plugin installer. Help me choose a folder, preserve existing files, and verify the running preview. Then help me open the Design Studio folder in my agent harness.
+> Install Design Studio from release v0.4.0 using https://github.com/itspatmorgan/design-studio/blob/v0.4.0/src/platform/context/installing.md. Use the repository installation guide without a plugin installer. Help me choose a folder, preserve existing files, and verify the running preview. Then help me open the Design Studio folder in my agent harness.
 
 ## 1. Prepare your computer
 
@@ -21,7 +21,7 @@ Install [Git](https://git-scm.com/downloads) and [mise](https://mise.jdx.dev/get
 Open a terminal in the folder where you keep your projects. Run:
 
 ```sh
-git clone --filter=blob:none --branch v0.1.2 https://github.com/itspatmorgan/design-studio.git design-studio
+git clone --filter=blob:none --branch v0.4.0 https://github.com/itspatmorgan/design-studio.git design-studio
 cd design-studio
 git remote rename origin upstream
 git switch -c main
@@ -29,7 +29,7 @@ git switch -c main
 
 Design Studio is installed in the `design-studio` folder. You can choose a different name. If the folder already exists, choose another name or open the existing studio; do not replace its files.
 
-These commands install release `v0.1.2` and preserve the history needed for future updates.
+These commands install release `v0.4.0` and preserve the history needed for future updates.
 
 ## 3. Install dependencies and open the preview
 

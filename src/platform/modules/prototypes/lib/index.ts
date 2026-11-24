@@ -19,7 +19,9 @@ export function prototypeArtifactHref(prototype: PrototypeNavigationScope, path:
   if (matches.length > 1) throw new Error(`Prototype path "${file}" is ambiguous.`);
   const artifact = matches[0];
   if (!prototype.studioId || !artifact?.studioId)
-    throw new Error(`No identified artifact exists at prototype path "${file}".`);
+    throw new Error(
+      `No identified artifact exists at prototype path "${file}". A new file gets its identity from the running dev server; without it, run pnpm studio identify <prototype folder> --yes.`,
+    );
   if (![prototype.studioId, artifact.studioId].every(id => /^[0-9abcdefghjkmnpqrstvwxyz]{16}$/.test(id)))
     throw new Error('Invalid prototype navigation identity.');
   return `/prototypes/${prototype.studioId}/artifacts/${artifact.studioId}${suffix}`;
@@ -36,7 +38,12 @@ export function usePrototypeArtifactHref(): (path: string) => string {
 export function useIsPrototypeArtifact(path: string): boolean {
   const prototype = useContext(scope);
   if (!prototype) throw new Error('Prototype navigation requires a rendered prototype view.');
-  const href = prototypeArtifactHref(prototype, path).split(/[?#]/)[0];
+  let href: string;
+  try {
+    href = prototypeArtifactHref(prototype, path).split(/[?#]/)[0];
+  } catch {
+    return false; // The Link for this path reports the problem.
+  }
   return Boolean(
     prototype.currentArtifactId &&
       href === `/prototypes/${prototype.studioId}/artifacts/${prototype.currentArtifactId}`,
@@ -49,10 +56,31 @@ const targetHref = (resolve: (path: string) => string, to: string) => (to.starts
 
 export type LinkProps = Omit<ComponentPropsWithoutRef<'a'>, 'href'> & { to: string };
 
+const reported = new Set<string>();
+
 /** A link to another file of this prototype, by its prototype-relative path. */
 export function Link({ to, ...props }: LinkProps): ReactElement {
   const resolve = usePrototypeArtifactHref();
-  return createElement(RouterLink, { ...props, to: targetHref(resolve, to) as never });
+  let href: string;
+  try {
+    href = targetHref(resolve, to);
+  } catch (error) {
+    // One unresolvable path, often in shared chrome, must not take down every view that renders it.
+    // The link stays in place, inert and marked, and the console names the path.
+    const message = error instanceof Error ? error.message : String(error);
+    if (!reported.has(message)) {
+      reported.add(message);
+      console.error(`Link to "${to}": ${message}`);
+    }
+    return createElement('a', {
+      ...props,
+      'aria-disabled': true,
+      'data-studio-broken-link': to,
+      title: message,
+      style: import.meta.env?.DEV ? { ...props.style, outline: '1px dashed #dc2626', outlineOffset: 2 } : props.style,
+    });
+  }
+  return createElement(RouterLink, { ...props, to: href as never });
 }
 
 /** Returns a function that navigates to a prototype-relative path. */

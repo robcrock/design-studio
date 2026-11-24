@@ -5,7 +5,7 @@ import path from 'node:path';
 import { createResourceId } from '../../../core/resourceIdentity.ts';
 import { readDeclaration } from '../../../core/declarations.ts';
 import { persistStudioReferences } from '../../../core/resourceReferences.ts';
-import { CONFIG_FILE } from '../../../core/config.ts';
+import { ASSET_LIMIT_KB, CONFIG_FILE } from '../../../core/config.ts';
 import { FORMAT_VERSIONS } from '../../../core/formats.ts';
 import { serializeConfig, withSettings } from '../../../core/config-file.ts';
 import { readResourceDirectory } from '../resource-directory.js';
@@ -31,7 +31,10 @@ export function writeFixtureConfig(root, config) {
   }
   const directory = readResourceDirectory(root);
   const persisted = persistStudioReferences(
-    withSettings(config, { formatVersion: config.formatVersion ?? FORMAT_VERSIONS.config }),
+    withSettings(config, {
+      formatVersion: config.formatVersion ?? FORMAT_VERSIONS.config,
+      assetLimitKB: config.assetLimitKB ?? ASSET_LIMIT_KB,
+    }),
     directory,
   );
   fs.writeFileSync(path.join(root, CONFIG_FILE), serializeConfig(persisted));

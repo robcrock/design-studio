@@ -204,8 +204,18 @@ function readPrototype(dir, contributorKey, id, out, contributors, policy = 'own
   } catch (error) {
     return skip(`has invalid resource identity (${error.message})`);
   }
+  // An artifact's URL is its identity, so a file still waiting for one (the identity audit names it) stays out of the
+  // prototype until it has one, instead of breaking every page that links to its siblings.
+  if (studioId)
+    for (let i = artifacts.length - 1; i >= 0; i--)
+      if (FILE_TYPES[artifacts[i].fileType].identity && !artifacts[i].studioId) artifacts.splice(i, 1);
   // Two artifacts can't share a URL (main.tsx next to main.jsx or main.md), and each file type checks its own files.
-  errors += checkArtifacts(dir, artifacts, out, { contributor: contributorKey, id, ...(studioId && { studioId }) });
+  errors += checkArtifacts(dir, artifacts, out, {
+    contributor: contributorKey,
+    id,
+    ...(studioId && { studioId }),
+    artifacts: artifacts.map(item => ({ studioId: item.studioId, systemUsage: FILE_TYPES[item.fileType].systemUsage })),
+  });
   // systemId is an explicit permanent assignment; source keys are derived for runtime imports.
   const { system, systemId, rebuild, problems: assignmentProblems } = prototypeAssignment(meta, PROTOTYPE_SYSTEMS);
   if (assignmentProblems.length) return skip(assignmentProblems[0]);
@@ -245,6 +255,8 @@ function readPrototype(dir, contributorKey, id, out, contributors, policy = 'own
       created: meta.created ?? null,
       system,
       systemId,
+      // The screens its views are laid out at: its system's, or the app's own without one (spec.ts).
+      screens: (SYSTEM_SPECS[system] ?? SYSTEM_SPECS[PLATFORM_ID]).screens,
       artifacts,
       ...(meta.systemMissing && { systemMissing: meta.systemMissing }),
       ...(rebuild !== undefined && { rebuild }),
@@ -354,7 +366,7 @@ export function buildManifest({ deploy = false, write = true, quiet = false, tou
   const identityAudit = auditResourceIdentities(ROOT, INSTALLED_FILE_TYPES);
   for (const missing of identityAudit.missing) {
     out.error(
-      `[identity] ${missing}: permanent identity is missing. Run pnpm studio identify <prototype-folder> --yes for newly authored files, or review a full identity migration.`,
+      `[identity] ${missing}: permanent identity is missing. The dev server assigns it in prototypes you can edit; otherwise run pnpm studio identify <prototype-folder> --yes.`,
     );
     errors++;
   }
@@ -561,8 +573,12 @@ export function buildManifest({ deploy = false, write = true, quiet = false, tou
     errors += result.errors;
   }
 
-  // What the deployed site leaves out (src/platform/core/archive.ts).
-  const { kept, archived } = forDeploy([...prototypes, ...Object.values(sections).flat()]);
+  // What the deployed site leaves out (src/platform/core/archive.ts). A download build
+  // (src/platform/modules/prototypes/node/download.js) keeps only its prototype.
+  const { kept, archived } = forDeploy(
+    [...prototypes, ...Object.values(sections).flat()],
+    process.env.STUDIO_DOWNLOAD || undefined,
+  );
   const keptPrototypes = kept.filter(p => !(p.contributorKey in sections));
   const keptSections = Object.fromEntries(
     Object.keys(sections).map(key => [key, kept.filter(p => p.contributorKey === key)]),
@@ -606,8 +622,19 @@ export function buildManifest({ deploy = false, write = true, quiet = false, tou
   return { manifest, errors, archived: deploy ? archived : [] };
 }
 
-// Run as a script: node src/platform/node/build/build-manifest.js [--strict]
+// Run as a script: node src/platform/node/build/build-manifest.js [--strict] [--deploy] [--identify]
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  // pnpm dev passes --identify: like the dev server, it first gives files written while it was stopped their identity.
+  if (process.argv.includes('--identify')) {
+    const { identifyAuthored, prototypeFolderOf } = await import('../lib/prototype-identification.js');
+    const { resolveContributor } = await import('../cli/resolve-contributor.js');
+    const folders = auditResourceIdentities(ROOT, INSTALLED_FILE_TYPES).missing.map(prototypeFolderOf);
+    for (const result of identifyAuthored(ROOT, INSTALLED_FILE_TYPES, folders, resolveContributor))
+      if (!result.error)
+        console.log(
+          `[identity] Assigned ${result.changed} missing identit${result.changed === 1 ? 'y' : 'ies'} in ${result.folder}.`,
+        );
+  }
   const { errors } = buildManifest({ deploy: process.argv.includes('--deploy') });
   // pnpm build passes --strict, so a broken meta.json or Manual page fails the build. In dev it's only a warning.
   if (errors && process.argv.includes('--strict')) process.exit(1);

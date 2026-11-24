@@ -6,6 +6,7 @@ import { artifactSlug } from '@/platform/core/fileTypes';
 import { resourceId } from '@/platform/core/resourceIdentity';
 import { SYSTEM_CONTENT_KEY, isSectionKey, contentSection, addressOf } from '@/platform/core/roots';
 import type { Artifact, Manifest, Prototype, PrototypeInfo, PrototypeRef } from '@/platform/app/data/types';
+import { embeddedManifest } from '@/platform/app/data/downloaded';
 
 // Fetched once, then shared by every route loader. In dev, replaced whenever it changes.
 let manifest: Promise<Manifest> | undefined;
@@ -13,6 +14,8 @@ export const setManifest = (m: Manifest) => {
   manifest = Promise.resolve(m);
 };
 export function loadManifest(): Promise<Manifest> {
+  // A downloaded prototype carries its manifest, with its artifacts.
+  if (embeddedManifest) manifest ??= Promise.resolve(JSON.parse(embeddedManifest.textContent ?? '') as Manifest);
   manifest ??= fetch(`${import.meta.env.BASE_URL}prototypes/manifest.json`, { cache: 'no-cache' })
     .then(r => {
       if (!r.ok) throw new Error(`Couldn't load the studio (${r.status}). Check the connection and try again.`);

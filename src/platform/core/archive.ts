@@ -15,12 +15,12 @@ export const parseStatus = (value: unknown): Status | null =>
 // What the deployed site keeps: every prototype that isn't archived. `archived` lists what was left
 // out as paths in the app's file globs ("/prototypes/samples/checkout/**"), for
 // src/platform/node/build/vite-globs-plugin.js.
+// `only` ("<contributor>/<id>") keeps that one prototype and leaves out the rest, for a download.
 type Proto = { id: string; contributorKey: string; status?: Status; systemMissing?: unknown };
-export function forDeploy<P extends Proto>(prototypes: P[]) {
-  const kept = prototypes.filter(p => p.status !== 'archived' && !p.systemMissing);
-  const archived = prototypes
-    .filter(p => p.status === 'archived' || !!p.systemMissing)
-    .map(p => `/${rootOf(p.contributorKey, p.id)}/**`);
+export function forDeploy<P extends Proto>(prototypes: P[], only?: string) {
+  const keep = (p: P) => (only ? `${p.contributorKey}/${p.id}` === only : p.status !== 'archived' && !p.systemMissing);
+  const kept = prototypes.filter(keep);
+  const archived = prototypes.filter(p => !keep(p)).map(p => `/${rootOf(p.contributorKey, p.id)}/**`);
   return { kept, archived };
 }
 

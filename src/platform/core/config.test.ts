@@ -28,6 +28,7 @@ const config: StudioConfig = {
   systems: ['product'],
   systemMaintainers: { product: [] },
   defaultSystem: 'product',
+  assetLimitKB: 750,
 };
 const problems = (changes: Record<string, unknown>) =>
   configProblems({ ...config, ...changes }, modules, ['product']).join('\n');
@@ -226,4 +227,12 @@ test('a missing or unknown formatVersion is a problem that names the file', () =
     for (const invalid of [undefined, 0, 99, '1'])
       assert.ok(formatVersionProblem(invalid, format, 'stored.json'), `${format}: ${invalid}`);
   }
+});
+
+test('assetLimitKB is declared as a number of KB above 0', () => {
+  const { assetLimitKB: _omitted, ...undeclared } = config;
+  assert.match(configProblems(undeclared, modules, ['product']).join('\n'), /declare assetLimitKB/);
+  for (const assetLimitKB of [0, -1, '750', Number.NaN])
+    assert.match(problems({ assetLimitKB }), /declare assetLimitKB/);
+  assert.equal(problems({ assetLimitKB: 20000 }), '');
 });

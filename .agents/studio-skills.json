@@ -65,6 +65,14 @@
       "kind": "link",
       "hash": "72b0f4a7dfac54b9ba03d6d094665ff90668d5d5f5d6cb15b7cc43547d06263c"
     },
+    ".agents/skills/studio-module-dialkit-use-dialkit/SKILL.md": {
+      "kind": "file",
+      "hash": "0f111af3a7a3cdd7f45445fd4b7b2294d583287ab03dd5334bb57effc9a24cb0"
+    },
+    ".claude/skills/studio-module-dialkit-use-dialkit": {
+      "kind": "link",
+      "hash": "5030aa1e73d1ce9a053489144dd616469e32d7790fea4deec2a083861f004047"
+    },
     ".agents/skills/studio-module-document-write-document/SKILL.md": {
       "kind": "file",
       "hash": "c925990008d086e416557359935972646e395ebace3b8e5fff1ad26157c71c09"
@@ -99,7 +107,7 @@
     },
     ".agents/skills/studio-module-prototypes-organize-prototype/SKILL.md": {
       "kind": "file",
-      "hash": "3c0feccb07ccd2731b4c08834e0a83b092bc56d59d8e52a68a329eeab13fc60c"
+      "hash": "0fede4dc252167ded3d1fa99881eaaae85f3c1dffede2e664744e747feea2920"
     },
     ".claude/skills/studio-module-prototypes-organize-prototype": {
       "kind": "link",

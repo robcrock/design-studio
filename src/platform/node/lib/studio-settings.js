@@ -11,6 +11,8 @@ import { serializeConfig, withSettings } from '../../core/config-file.ts';
 import { readPersistedStudioConfig } from './persisted-studio-config.js';
 import { persistStudioReferences } from '../../core/resourceReferences.ts';
 import { systemDirOf } from './system-folders.js';
+import { moduleConsumers } from './imports.js';
+import { offLibraryOf } from './module-folders.js';
 
 export class SettingsError extends Error {
   constructor(message, status = 400) {
@@ -55,7 +57,16 @@ export function planSettings({
     throw new SettingsError('Settings or contributors changed. Reload settings before saving.', 409);
   if (!changes || typeof changes !== 'object' || Array.isArray(changes))
     throw new SettingsError('Settings changes must be an object.');
-  const allowed = ['name', 'tagline', 'usage', 'defaultSystem', 'admins', 'systemMaintainers', 'modules'];
+  const allowed = [
+    'name',
+    'tagline',
+    'usage',
+    'defaultSystem',
+    'admins',
+    'systemMaintainers',
+    'modules',
+    'assetLimitKB',
+  ];
   if (Object.keys(changes).some(key => !allowed.includes(key)))
     throw new SettingsError('Only basic settings, module states, and permission assignments can be changed here.');
   const next = { ...current.config, ...changes };
@@ -74,6 +85,18 @@ export function planSettings({
   for (const module of modules) {
     if (next.modules?.[module.id] === true && current.config.modules?.[module.id] !== true && !compatible(module))
       problems.push(`${module.label} is incompatible with this platform version.`);
+    // Code that imports a module keeps building while it is off only through the module's lib/off entry; without
+    // one, turning it off waits until nothing imports it.
+    const users =
+      next.modules?.[module.id] === false &&
+      current.config.modules?.[module.id] === true &&
+      !offLibraryOf(root, module.id)
+        ? moduleConsumers(root, module.id)
+        : [];
+    if (users.length)
+      problems.push(
+        `${module.label} is still used by ${users.slice(0, 3).join(', ')}${users.length > 3 ? ` and ${users.length - 3} more` : ''}. Take it out of ${users.length === 1 ? 'that file' : 'those files'} before turning it off.`,
+      );
   }
   problems.push(
     ...contributorPreferenceProblems(

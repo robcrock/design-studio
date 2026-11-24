@@ -31,7 +31,8 @@ import buildAssets from './src/platform/node/build/vite-build-assets-plugin.js';
 import globs from './src/platform/node/build/vite-globs-plugin.js';
 import css, { scopedUtilities } from './src/platform/node/build/vite-css-plugin.js';
 import { optimizedDependencies } from './src/platform/core/modules/index.ts';
-import { ENABLED_MODULES, MODULE_DIRS } from './src/platform/node/lib/modules.js';
+import { SYSTEM_GLOB_ROOTS } from './src/platform/core/roots.ts';
+import { ENABLED_MODULES, LIBRARY_MODULES, MODULE_DIRS } from './src/platform/node/lib/modules.js';
 
 // References use the same plain-Markdown pipeline, without hiding any document sections.
 function markdown(reference = false) {
@@ -61,10 +62,11 @@ function markdown(reference = false) {
   };
 }
 
-// A module with `lib: true` gives prototypes one door in: `import ... from '@module/<id>'` is its lib/index.
-const moduleLibs = ENABLED_MODULES.filter((m: { lib?: boolean }) => m.lib).map((m: { id: string }) => ({
+// A module with `lib: true` gives prototypes one door in: `import ... from '@module/<id>'` is its lib/index, or
+// its lib/off while the module is off.
+const moduleLibs = LIBRARY_MODULES.map((m: { id: string; off?: boolean }) => ({
   find: `@module/${m.id}`,
-  replacement: fileURLToPath(new URL(`./${MODULE_DIRS[m.id as string]}lib/index`, import.meta.url)),
+  replacement: fileURLToPath(new URL(`./${MODULE_DIRS[m.id]}lib/${m.off ? 'off' : 'index'}`, import.meta.url)),
 }));
 
 export default defineConfig({
@@ -72,6 +74,10 @@ export default defineConfig({
   // Pages supplies a path without a trailing slash; data URLs append relative paths.
   base: `${(process.env.STUDIO_BASE_PATH || '/').replace(/\/+$/, '')}/`,
   publicDir: '../public',
+  // A Codespace serves the dev server from its forwarded host (.devcontainer/devcontainer.json).
+  server: process.env.CODESPACES
+    ? { allowedHosts: [`.${process.env.GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN || 'app.github.dev'}`] }
+    : undefined,
   css: { postcss: { plugins: [scopedUtilities()] } },
   build: {
     outDir: '../dist',
@@ -95,10 +101,14 @@ export default defineConfig({
   // only when you first open it, re-bundle them, and end up with two copies of @codemirror/state: the editor
   // then fails with "Unrecognized extension value". Listing them bundles them together at start.
   optimizeDeps: {
+    // Systems' libraries are where prototype views get their packages (Lucide, Base UI, ...). Scanning them
+    // at start bundles those packages up front instead of reloading the page once a view first needs them.
+    entries: ['index.html', ...SYSTEM_GLOB_ROOTS.map(root => `.${root}/*/libraries/**/*.{ts,tsx}`)],
     include: [
       // Prepare the renderer's lazy entry without pulling every diagram type into the shell.
       'pele/lazy',
-      ...optimizedDependencies(ENABLED_MODULES),
+      // A module that is off still loads its packages through lib/off when code imports it.
+      ...optimizedDependencies([...ENABLED_MODULES, ...LIBRARY_MODULES]),
       // Embedded prototype views discover these deep imports after the canvas first paints.
       '@base-ui/react/**',
       '@codemirror/state',

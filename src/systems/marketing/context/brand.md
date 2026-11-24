@@ -1,12 +1,21 @@
 ---
-title: Design Studio brand
-description: Visual direction for Design Studio marketing surfaces.
+title: Echo brand
+description: The brand both Echo systems share, and how the website applies it.
 ---
 
-Use Geist, a warm neutral palette, and minimal architectural geometry. This direction comes from the studio owner’s supplied brand reference.
+Echo is a made-up B2B product used as Design Studio's example: it collects customer feedback from every channel, ties each request to the account behind it, and helps product teams decide what to build next.
 
-The reference palette is ink `#0F0F0F`, charcoal `#2A2A2A`, gray `#6B6B6B`, stone `#D7D6D1`, and paper `#F6F5F2`. The theme maps these to semantic roles and includes supporting surface and border colors. Dark mode is an adaptation of this direction, not a separately supplied brand specification.
+Marketing and [Product](/systems/4f3m7z08hk5a0k53/context/brand) share one brand and keep separate systems, the way most in-house teams do: the website is bold and spacious, the app is dense and quiet.
 
-Use generous space, restrained type weights, circles, rectangles, and simple geometry. The Design Studio mark combines a vertical bar and a semicircle. Prefer repository-native SVG for this geometry. Follow [Marketing design](design.md) for composition and copy requirements.
+## Shared foundations
 
-shadcn/Base UI provides the interaction components. Marketing applies its own warm palette, Geist typography, and rounded controls. Marketing guidance does not change Platform or Product.
+- **Name and mark:** Echo. The mark is a dot with two widening arcs, a sound and its echo, drawn in a single color.
+- **Color:** cobalt `#2F5BFF` is the one brand color. Everything else is zinc neutrals with white surfaces.
+- **Type:** Geist for text, Geist Mono for numbers, small technical labels, and code. No other typefaces.
+- **Voice:** plain, specific, and calm. Short sentences, real numbers, no hype.
+
+## On the website
+
+- Cobalt can fill a whole section, such as the hero or the closing call to action, with white type and white product surfaces floating on it.
+- Elsewhere, pages are white or zinc-50 and cobalt is used for links, primary buttons, and highlights.
+- Headlines are large, tight, and short. Body copy is a size smaller than you'd expect and generously spaced.

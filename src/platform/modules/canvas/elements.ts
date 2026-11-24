@@ -40,15 +40,29 @@ const LIGHT: Record<string, string> = {
 };
 export const COLOR_NAMES = Object.keys(STRONG);
 
-// A sticky note's fill and its slightly darker edge.
-export const NOTE_COLORS: Record<string, { fill: string; edge: string }> = {
-  yellow: { fill: '#ffec99', edge: '#ecd67a' },
-  pink: { fill: '#ffc9c9', edge: '#eeaeae' },
-  blue: { fill: '#a5d8ff', edge: '#87c0ec' },
-  green: { fill: '#b2f2bb', edge: '#94dc9f' },
+// Excalidraw's sticky notes (`stickynote`): its own five note colors, by name, and its layout. A note's
+// label fits by shrinking from its font size down to 16px, and only then does the note grow taller. Its
+// bottom band holds the date it was made. Excalidraw redoes this layout when it opens the canvas; this
+// copy lets the command line place and describe notes without it.
+export const NOTE_COLORS: Record<string, string> = {
+  yellow: '#ffdf6b',
+  pink: '#fcc2d7',
+  green: '#b2f2bb',
+  blue: '#a5d8ff',
+  orange: '#ffd8a8',
 };
-export const NOTE_SIZE = 200;
-export const NOTE_TEXT_COLOR = '#1e1e1e';
+export const NOTE_SIZE = 250;
+const NOTE_PADDING = 16;
+const NOTE_INSET_Y = NOTE_PADDING * 2 + 20; // padding above and below, and the date band
+const NOTE_MIN_FONT_SIZE = 16;
+
+export function noteLayout(text: string, width: number, baseHeight: number, fontSize = 20) {
+  const room = width - NOTE_PADDING * 2;
+  for (let size = fontSize; size > NOTE_MIN_FONT_SIZE; size -= 2)
+    if (textHeight(text, room, size) <= baseHeight - NOTE_INSET_Y) return { fontSize: size, height: baseHeight, room };
+  const size = Math.min(fontSize, NOTE_MIN_FONT_SIZE);
+  return { fontSize: size, height: Math.max(baseHeight, textHeight(text, room, size) + NOTE_INSET_Y), room };
+}
 
 // A color as CSS: a hex value, "none", or one of Excalidraw's palette names ("blue"). For a fill,
 // a name gives its light shade.
@@ -193,8 +207,9 @@ export function textElement(props: {
 export const labelRoom = (shape: string, width: number) =>
   Math.max(40, (shape === 'ellipse' ? width * 0.7 : shape === 'diamond' ? width * 0.5 : width) - 24);
 
-export function labelFor(container: El, text: string, fontSize = 20, stroke?: string): El {
-  const inner = labelRoom(container.type, container.width);
+// `wrap` false keeps the lines as given, for a container sized to its label already (a laid out diagram).
+export function labelFor(container: El, text: string, fontSize = 20, stroke?: string, wrap = true): El {
+  const inner = wrap ? labelRoom(container.type, container.width) : undefined;
   const label = textElement({
     text,
     x: 0,

@@ -40,6 +40,8 @@ export default function settings() {
     async hotUpdate({ file, server }) {
       if (file !== configFile && !isSystemDeclaration(file)) return;
       restarting.add(server);
+      // Open tabs cover the stale studio until the reload that follows the restart.
+      server.ws.send({ type: 'custom', event: 'studio:restarting' });
       while (fs.existsSync(path.join(ROOT, '.studio-system-operation')))
         await new Promise(resolve => setTimeout(resolve, 100));
       clearTimeout(restartTimer);

@@ -7,7 +7,8 @@
 //   this file. A canvas shows the view itself instead.
 // - Fields at Excalidraw's default are dropped; `restoreElements` fills them back in on load.
 //   `version`, `versionNonce` and `index` are kept: merging changes needs them.
-// - Numbers are rounded, keys are sorted, and volatile fields (`updated`) are dropped.
+// - Numbers are rounded, keys are sorted, and volatile fields (`updated`) are dropped. `created` is
+//   kept only on sticky notes, which show it as their date.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { resourceId, type ResourceId } from '#studio/files';
@@ -70,6 +71,7 @@ export function slimElement(element: Stored, mapLink: (link: string) => string =
   for (const [key, raw] of Object.entries(element)) {
     const value = key === 'link' && typeof raw === 'string' ? mapLink(raw) : raw;
     if (value === undefined || VOLATILE.has(key) || isDefault(key, value)) continue;
+    if (key === 'created' && element.type !== 'stickynote') continue;
     out[key] = value;
   }
   return stable(out) as Stored;

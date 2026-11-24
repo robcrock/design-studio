@@ -2,20 +2,18 @@
 
 Applied by pnpm on install (`patchedDependencies` in `pnpm-workspace.yaml`).
 
-## `@excalidraw__excalidraw@0.18.1.patch`
+## `@excalidraw__excalidraw@0.18.0-3c916c5.patch`
 
-Three changes, each applied to both `dist/dev` and `dist/prod`: hide the link icon (two conditions), and always use the desktop layout.
+Hides the link icon on canvas items. Applied to both `dist/dev` and `dist/prod`, in two places each.
 
-### Hide the link icon
-
-**What:** two conditions:
+**What:**
 
 ```diff
-# renderLinkIcon (paints the icon)
+# renderLinkIcon (paints the icon), in a chunk file: dist/dev/chunk-TYJERDXG.js, dist/prod/chunk-S5GO2OD2.js
 - if (element.link && !appState.selectedElementIds[element.id]) {
 + if (element.link && !appState.selectedElementIds[element.id] && !element.customData?.hideLinkIcon) {
 
-# getElementLinkAtPosition (hit-tests the icon's spot)
+# getElementLinkAtPosition (hit-tests the icon's spot), in dist/dev/index.js and dist/prod/index.js
 - if (element.link && index >= hitElementIndex && isPointHittingLink(
 + if (element.link && !element.customData?.hideLinkIcon && index >= hitElementIndex && isPointHittingLink(
 ```
@@ -34,27 +32,15 @@ and their title bar is the link instead.
 **Upgrading Excalidraw:** pnpm refuses to install if the patch no longer applies.
 
 1. `pnpm patch @excalidraw/excalidraw@<new-version>`
-2. In the printed folder, add `&& !element.customData?.hideLinkIcon` to the condition in
-   `renderLinkIcon` and in `getElementLinkAtPosition` (`dist/dev/*.js` and `dist/prod/*.js`).
-3. `pnpm patch-commit <folder>`, delete the old patch, check a canvas shows no icon and hovering a view's top-right corner shows no URL tooltip, and that a narrow canvas (under 730px) still shows the desktop layout.
+2. In the printed folder, find `renderLinkIcon` and `getElementLinkAtPosition` (`grep -l` across `dist/dev` and
+   `dist/prod`; the chunk file names are hashed and change between versions) and add the condition to each.
+3. `pnpm patch-commit <folder>`, delete the old patch and update the `packageExtensions` versions in
+   `pnpm-workspace.yaml`. Check a canvas shows no icon and hovering a view's top-right corner shows no URL tooltip.
 
 **Remove when** Excalidraw offers a built-in way to hide the icon.
 
-### Always use the desktop layout
+## `packageExtensions` for Excalidraw
 
-**What:** `isMobileBreakpoint` (in `App`) returns false, so Excalidraw never switches to its phone layout:
-
-```diff
-- return width < MQ_MAX_WIDTH_PORTRAIT || height < MQ_MAX_HEIGHT_LANDSCAPE && width < MQ_MAX_WIDTH_LANDSCAPE;
-+ return false;
-```
-
-**Why:** below 730px of canvas width Excalidraw uses a layout built for phones, with a bar along the bottom
-and a menu that pops up over the canvas. The app runs on a desktop but is often narrow, because it sits
-beside an agent's sidebars. The desktop layout at a narrow width, with `canvas.css` keeping its top row on
-one line, is easier to use.
-
-**Upgrading:** in the new version, find where the editor decides `isMobile` (search `isMobileBreakpoint`)
-and make it return false in `dist/dev/index.js` and `dist/prod/index.js`.
-
-**Remove when** Excalidraw lets the host choose the layout.
+The Excalidraw build imports `@excalidraw/fractional-indexing` and `@excalidraw/math` from packages that don't
+declare them. They resolve only when hoisted, and this repo doesn't hoist, so `pnpm-workspace.yaml` declares them.
+**Remove when** Excalidraw declares them itself.
